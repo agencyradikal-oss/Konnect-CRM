@@ -2,20 +2,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { prisma } from "@/lib/prisma";
 import { requireBusinessSession } from "@/lib/auth";
 import { ProfileForm } from "@/components/crm/profile-form";
+import { defaultHours, type WeekHours } from "@/components/business/hours-editor";
 
 export default async function PerfilPage() {
   const { businessId } = await requireBusinessSession();
 
-  const business = await prisma.business.findUniqueOrThrow({
-    where: { id: businessId },
-  });
+  const [business, categories] = await Promise.all([
+    prisma.business.findUniqueOrThrow({ where: { id: businessId } }),
+    prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: { nameEs: "asc" },
+      select: { id: true, nameEs: true },
+    }),
+  ]);
+
+  const hours =
+    business.hours && typeof business.hours === "object"
+      ? (business.hours as WeekHours)
+      : defaultHours;
 
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Perfil público</h1>
         <p className="text-muted-foreground">
-          Esta información aparece en tu página del directorio.
+          Esta información aparece en tu página del directorio. Los cambios se
+          reflejan de inmediato.
         </p>
       </div>
 
@@ -28,8 +40,12 @@ export default async function PerfilPage() {
         </CardHeader>
         <CardContent>
           <ProfileForm
+            categories={categories}
             initial={{
+              name: business.name,
+              categoryId: business.categoryId,
               description: business.description ?? "",
+              languages: business.languages,
               phone: business.phone ?? "",
               whatsapp: business.whatsapp ?? "",
               email: business.email ?? "",
@@ -37,6 +53,9 @@ export default async function PerfilPage() {
               address: business.address ?? "",
               city: business.city ?? "",
               zip: business.zip ?? "",
+              logoUrl: business.logoUrl,
+              coverUrl: business.coverUrl,
+              hours,
             }}
           />
         </CardContent>

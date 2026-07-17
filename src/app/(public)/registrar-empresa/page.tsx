@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { RegisterBusinessForm } from "@/components/business/register-form";
+import { RegisterWizard } from "@/components/business/register-wizard";
 
 export const metadata: Metadata = {
   title: "Registra tu negocio",
@@ -60,7 +60,7 @@ export default async function RegistrarEmpresaPage() {
         </CardHeader>
         <CardContent>
           {session?.user ? (
-            <RegisterBusinessForm categories={categories} />
+            <RegisterWizard categories={categories} />
           ) : (
             <div className="flex flex-col gap-3">
               <Button asChild size="lg">

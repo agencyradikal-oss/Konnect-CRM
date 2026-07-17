@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inbox, Users, Handshake, DollarSign } from "lucide-react";
+import { Clock, Inbox, Users, Handshake, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,11 +13,20 @@ import { prisma } from "@/lib/prisma";
 import { requireBusinessSession } from "@/lib/auth";
 import { LeadStatusBadge, leadSourceLabels } from "@/components/crm/stage-badge";
 
-export default async function DashboardPage() {
-  const { businessId } = await requireBusinessSession();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nuevo?: string }>;
+}) {
+  const { businessId, session } = await requireBusinessSession();
+  const { nuevo } = await searchParams;
 
-  const [newLeads, contacts, openDeals, wonValue, recentLeads] =
+  const [business, newLeads, contacts, openDeals, wonValue, recentLeads] =
     await Promise.all([
+      prisma.business.findUnique({
+        where: { id: businessId },
+        select: { status: true, name: true },
+      }),
       prisma.lead.count({ where: { businessId, status: "NEW" } }),
       prisma.contact.count({ where: { businessId } }),
       prisma.deal.count({
@@ -34,6 +43,8 @@ export default async function DashboardPage() {
       }),
     ]);
 
+  const showReviewBanner = business?.status === "PENDING" || nuevo === "1";
+
   const metrics = [
     { label: "Leads nuevos", value: newLeads, icon: Inbox, href: "/app/leads" },
     { label: "Contactos", value: contacts, icon: Users, href: "/app/contactos" },
@@ -48,9 +59,29 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">
+        Hola{session.user.name ? `, ${session.user.name.split(" ")[0]}` : ""}
+      </h1>
 
-      {/* Cards de métricas */}
+      {showReviewBanner && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+          <Clock className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Tu perfil está en revisión</p>
+            <p className="text-sm opacity-90">
+              Nuestro equipo revisará{" "}
+              <strong>{business?.name ?? "tu negocio"}</strong> y te avisaremos
+              por email cuando esté publicado en el directorio. Mientras tanto
+              puedes editar tu{" "}
+              <Link href="/app/perfil" className="underline underline-offset-2">
+                perfil público
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map(({ label, value, icon: Icon, href }) => (
           <Link key={label} href={href}>
@@ -69,7 +100,6 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Últimos leads — El Puente en acción */}
       <Card>
         <CardHeader>
           <CardTitle>Últimos leads</CardTitle>

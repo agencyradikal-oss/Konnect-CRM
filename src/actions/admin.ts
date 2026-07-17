@@ -2,41 +2,75 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { BusinessStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/auth";
+import { sendBusinessApprovedEmail } from "@/lib/email";
 
-const moderateSchema = z.object({
-  businessId: z.string().min(1),
-  status: z.nativeEnum(BusinessStatus),
-});
+const idSchema = z.object({ businessId: z.string().min(1) });
 
-export async function moderateBusiness(input: unknown) {
+/** Aprobar negocio: ACTIVE + email al dueño vía Resend. */
+export async function approveBusiness(input: unknown) {
   await requireSuperAdmin();
-  const data = moderateSchema.parse(input);
+  const { businessId } = idSchema.parse(input);
 
-  await prisma.business.update({
-    where: { id: data.businessId },
-    data: { status: data.status },
+  const business = await prisma.business.update({
+    where: { id: businessId },
+    data: { status: "ACTIVE" },
+    include: { users: { select: { email: true }, take: 1 } },
   });
 
+  const ownerEmail = business.users[0]?.email ?? business.email;
+  if (ownerEmail) {
+    await sendBusinessApprovedEmail({
+      to: ownerEmail,
+      businessName: business.name,
+      slug: business.slug,
+    });
+  }
+
   revalidatePath("/admin");
+  revalidatePath("/directorio");
+  revalidatePath(`/negocio/${business.slug}`);
   return { ok: true as const };
 }
 
-const reviewSchema = z.object({
-  reviewId: z.string().min(1),
-  approved: z.boolean(),
-});
-
-export async function moderateReview(input: unknown) {
+/** Rechazar negocio: SUSPENDED (no aparece en el directorio). */
+export async function rejectBusiness(input: unknown) {
   await requireSuperAdmin();
-  const data = reviewSchema.parse(input);
+  const { businessId } = idSchema.parse(input);
 
-  await prisma.review.update({
-    where: { id: data.reviewId },
-    data: { approved: data.approved },
+  const business = await prisma.business.update({
+    where: { id: businessId },
+    data: { status: "SUSPENDED" },
   });
+
+  revalidatePath("/admin");
+  revalidatePath(`/negocio/${business.slug}`);
+  return { ok: true as const };
+}
+
+const reviewSchema = z.object({ reviewId: z.string().min(1) });
+
+export async function approveReview(input: unknown) {
+  await requireSuperAdmin();
+  const { reviewId } = reviewSchema.parse(input);
+
+  const review = await prisma.review.update({
+    where: { id: reviewId },
+    data: { approved: true },
+    include: { business: { select: { slug: true } } },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/negocio/${review.business.slug}`);
+  return { ok: true as const };
+}
+
+export async function deleteReview(input: unknown) {
+  await requireSuperAdmin();
+  const { reviewId } = reviewSchema.parse(input);
+
+  await prisma.review.delete({ where: { id: reviewId } });
 
   revalidatePath("/admin");
   return { ok: true as const };

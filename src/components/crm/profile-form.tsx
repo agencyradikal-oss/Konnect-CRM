@@ -1,15 +1,30 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { updateBusinessProfile } from "@/actions/business";
+import { HoursEditor, defaultHours, type WeekHours } from "@/components/business/hours-editor";
+import { ImageUpload } from "@/components/business/image-upload";
 
-type ProfileData = {
+type CategoryOption = { id: string; nameEs: string };
+
+type ProfileInitial = {
+  name: string;
+  categoryId: string;
   description: string;
+  languages: string[];
   phone: string;
   whatsapp: string;
   email: string;
@@ -17,79 +32,208 @@ type ProfileData = {
   address: string;
   city: string;
   zip: string;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  hours: WeekHours;
 };
 
-export function ProfileForm({ initial }: { initial: ProfileData }) {
+export function ProfileForm({
+  initial,
+  categories,
+}: {
+  initial: ProfileInitial;
+  categories: CategoryOption[];
+}) {
   const [pending, startTransition] = useTransition();
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const [name, setName] = useState(initial.name);
+  const [categoryId, setCategoryId] = useState(initial.categoryId);
+  const [description, setDescription] = useState(initial.description);
+  const [languages, setLanguages] = useState<string[]>(
+    initial.languages.length ? initial.languages : ["es"]
+  );
+  const [phone, setPhone] = useState(initial.phone);
+  const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
+  const [email, setEmail] = useState(initial.email);
+  const [website, setWebsite] = useState(initial.website);
+  const [address, setAddress] = useState(initial.address);
+  const [city, setCity] = useState(initial.city);
+  const [zip, setZip] = useState(initial.zip);
+  const [hours, setHours] = useState<WeekHours>(initial.hours ?? defaultHours);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [cover, setCover] = useState<File | null>(null);
+
+  function toggleLanguage(lang: string) {
+    setLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+  }
+
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.currentTarget));
+
+    const formData = new FormData();
+    formData.set("name", name);
+    formData.set("categoryId", categoryId);
+    formData.set("description", description);
+    formData.set("languages", JSON.stringify(languages));
+    formData.set("phone", phone);
+    formData.set("whatsapp", whatsapp);
+    formData.set("email", email);
+    formData.set("website", website);
+    formData.set("address", address);
+    formData.set("city", city);
+    formData.set("zip", zip);
+    formData.set("hours", JSON.stringify(hours));
+    if (logo) formData.set("logo", logo);
+    if (cover) formData.set("cover", cover);
 
     startTransition(async () => {
-      try {
-        const res = await updateBusinessProfile(data);
-        if (res.ok) toast.success("Perfil actualizado.");
-        else toast.error("No se pudo guardar.");
-      } catch {
-        toast.error("Revisa los campos e intenta de nuevo.");
-      }
+      const res = await updateBusinessProfile(formData);
+      if (res.ok) toast.success("Perfil actualizado.");
+      else toast.error(res.error ?? "No se pudo guardar.");
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="description">Descripción</Label>
-        <Textarea
-          id="description"
-          name="description"
-          rows={5}
-          defaultValue={initial.description}
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="space-y-8">
+      <section className="space-y-4">
+        <h3 className="font-semibold">Negocio</h3>
         <div className="space-y-2">
-          <Label htmlFor="phone">Teléfono</Label>
-          <Input id="phone" name="phone" defaultValue={initial.phone} />
+          <Label htmlFor="name">Nombre *</Label>
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="whatsapp">WhatsApp</Label>
-          <Input id="whatsapp" name="whatsapp" defaultValue={initial.whatsapp} />
+          <Label>Categoría *</Label>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.nameEs}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email público</Label>
-          <Input id="email" name="email" type="email" defaultValue={initial.email} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="website">Sitio web</Label>
-          <Input
-            id="website"
-            name="website"
-            placeholder="https://..."
-            defaultValue={initial.website}
+          <Label htmlFor="description">Descripción</Label>
+          <Textarea
+            id="description"
+            rows={5}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
-      </div>
+        <div className="space-y-2">
+          <Label>Idiomas atendidos</Label>
+          <div className="flex gap-2">
+            {[
+              { id: "es", label: "Español" },
+              { id: "en", label: "English" },
+            ].map((lang) => (
+              <Button
+                key={lang.id}
+                type="button"
+                variant={languages.includes(lang.id) ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleLanguage(lang.id)}
+              >
+                {languages.includes(lang.id) && <Check className="size-4" />}
+                {lang.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="address">Dirección</Label>
-          <Input id="address" name="address" defaultValue={initial.address} />
+      <section className="space-y-4">
+        <h3 className="font-semibold">Contacto y ubicación</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="phone">Teléfono *</Label>
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">WhatsApp</Label>
+            <Input
+              id="whatsapp"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email público</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="website">Sitio web</Label>
+            <Input
+              id="website"
+              placeholder="https://..."
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+            />
+          </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="zip">Código postal</Label>
-          <Input id="zip" name="zip" defaultValue={initial.zip} />
+          <Label htmlFor="address">Dirección</Label>
+          <Input
+            id="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
         </div>
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="city">Ciudad *</Label>
+            <Input
+              id="city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="zip">Código postal</Label>
+            <Input id="zip" value={zip} onChange={(e) => setZip(e.target.value)} />
+          </div>
+        </div>
+      </section>
 
-      <div className="space-y-2">
-        <Label htmlFor="city">Ciudad</Label>
-        <Input id="city" name="city" defaultValue={initial.city} />
-      </div>
+      <section className="space-y-4">
+        <h3 className="font-semibold">Imágenes y horario</h3>
+        <div className="flex flex-wrap gap-6">
+          <ImageUpload
+            label="Logo"
+            file={logo}
+            onChange={setLogo}
+            existingUrl={initial.logoUrl}
+          />
+          <ImageUpload
+            label="Portada"
+            file={cover}
+            onChange={setCover}
+            existingUrl={initial.coverUrl}
+            aspect="wide"
+          />
+        </div>
+        <HoursEditor value={hours} onChange={setHours} />
+      </section>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} size="lg">
         {pending ? "Guardando..." : "Guardar cambios"}
       </Button>
     </form>
