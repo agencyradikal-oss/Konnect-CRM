@@ -1,0 +1,29 @@
+{
+  "common": {
+    "search": "Search",
+    "categories": "Categories",
+    "contact": "Contact",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "quote": "Request a quote",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out"
+  },
+  "directory": {
+    "title": "Find Hispanic businesses in Atlanta",
+    "subtitle": "Business directory with service in Spanish",
+    "searchPlaceholder": "What are you looking for? E.g.: countertops, tacos, lawyer...",
+    "cityPlaceholder": "City",
+    "noResults": "No businesses match those filters."
+  },
+  "crm": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "contacts": "Contacts",
+    "deals": "Deals",
+    "tasks": "Tasks",
+    "profile": "Public profile",
+    "plan": "Plan & billing"
+  }
+}

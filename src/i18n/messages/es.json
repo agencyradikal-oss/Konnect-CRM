@@ -1,0 +1,29 @@
+{
+  "common": {
+    "search": "Buscar",
+    "categories": "Categorías",
+    "contact": "Contactar",
+    "call": "Llamar",
+    "whatsapp": "WhatsApp",
+    "quote": "Pedir cotización",
+    "login": "Iniciar sesión",
+    "signup": "Crear cuenta",
+    "logout": "Cerrar sesión"
+  },
+  "directory": {
+    "title": "Encuentra negocios hispanos en Atlanta",
+    "subtitle": "Directorio de empresas con atención en español",
+    "searchPlaceholder": "¿Qué buscas? Ej: countertops, tacos, abogado...",
+    "cityPlaceholder": "Ciudad",
+    "noResults": "No encontramos negocios con esos filtros."
+  },
+  "crm": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "contacts": "Contactos",
+    "deals": "Deals",
+    "tasks": "Tareas",
+    "profile": "Perfil público",
+    "plan": "Plan y facturación"
+  }
+}

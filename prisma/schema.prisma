@@ -1,0 +1,235 @@
+// Konnect™ — schema núcleo
+// https://konnect.kmd.agency
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Auth / Tenant ============
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String?
+  role         Role      @default(BUSINESS_OWNER)
+  businessId   String?
+  business     Business? @relation(fields: [businessId], references: [id])
+  createdAt    DateTime  @default(now())
+
+  @@index([businessId])
+}
+
+enum Role {
+  SUPER_ADMIN
+  BUSINESS_OWNER
+  BUSINESS_STAFF
+}
+
+// ============ Directorio público ============
+
+model Business {
+  id                   String         @id @default(cuid())
+  slug                 String         @unique // /negocio/[slug]
+  name                 String
+  description          String?        @db.Text
+  categoryId           String
+  category             Category       @relation(fields: [categoryId], references: [id])
+  phone                String?
+  whatsapp             String?
+  email                String?
+  website              String?
+  address              String?
+  city                 String?
+  state                String?        @default("GA")
+  zip                  String?
+  lat                  Float?
+  lng                  Float?
+  logoUrl              String?
+  coverUrl             String?
+  gallery              String[] // URLs Vercel Blob
+  hours                Json? // horario por día
+  socials              Json? // fb, ig, tiktok, linkedin
+  languages            String[]       @default(["es", "en"])
+  verified             Boolean        @default(false)
+  featured             Boolean        @default(false) // solo Premium
+  plan                 Plan           @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               BusinessStatus @default(PENDING)
+  users                User[]
+  leads                Lead[]
+  contacts             Contact[]
+  deals                Deal[]
+  tasks                Task[]
+  activities           Activity[]
+  reviews              Review[]
+  createdAt            DateTime       @default(now())
+
+  @@index([categoryId])
+  @@index([city, status])
+  @@index([plan, featured])
+}
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model Category {
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  nameEs     String
+  nameEn     String
+  icon       String?
+  parentId   String?
+  parent     Category?  @relation("Sub", fields: [parentId], references: [id])
+  children   Category[] @relation("Sub")
+  businesses Business[]
+
+  @@index([parentId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  authorName  String
+  authorEmail String
+  rating      Int // 1-5 (validar en Zod)
+  comment     String?  @db.Text
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, approved])
+}
+
+// ============ CRM (privado, por tenant) ============
+
+model Lead {
+  id         String     @id @default(cuid())
+  businessId String
+  business   Business   @relation(fields: [businessId], references: [id])
+  name       String
+  email      String?
+  phone      String?
+  message    String?    @db.Text
+  source     LeadSource
+  status     LeadStatus @default(NEW)
+  contactId  String?
+  contact    Contact?   @relation(fields: [contactId], references: [id])
+  dealId     String?
+  deal       Deal?      @relation(fields: [dealId], references: [id])
+  createdAt  DateTime   @default(now())
+
+  @@index([businessId, status])
+  @@index([businessId, source])
+  @@index([contactId])
+  @@index([dealId])
+}
+
+enum LeadSource {
+  DIRECTORY_FORM
+  QUOTE_REQUEST
+  CLICK_CALL
+  CLICK_WHATSAPP
+  MANUAL
+  IMPORT
+  REFERRAL
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  name       String
+  email      String?
+  phone      String?
+  company    String?
+  notes      String?  @db.Text
+  tags       String[]
+  deals      Deal[]
+  leads      Lead[]
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+}
+
+model Deal {
+  id            String     @id @default(cuid())
+  businessId    String
+  business      Business   @relation(fields: [businessId], references: [id])
+  contactId     String?
+  contact       Contact?   @relation(fields: [contactId], references: [id])
+  title         String
+  value         Decimal?   @db.Decimal(12, 2)
+  stage         DealStage  @default(NUEVO)
+  expectedClose DateTime?
+  notes         String?    @db.Text
+  tasks         Task[]
+  activities    Activity[]
+  leads         Lead[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([businessId, stage])
+  @@index([contactId])
+}
+
+enum DealStage {
+  NUEVO
+  CONTACTADO
+  COTIZADO
+  NEGOCIACION
+  GANADO
+  PERDIDO
+}
+
+model Task {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  dealId     String?
+  deal       Deal?     @relation(fields: [dealId], references: [id])
+  title      String
+  dueDate    DateTime?
+  done       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([businessId, done])
+  @@index([dealId])
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  businessId String // denormalizado para queries multi-tenant
+  business   Business @relation(fields: [businessId], references: [id])
+  dealId     String
+  deal       Deal     @relation(fields: [dealId], references: [id])
+  type       String // note | call | email | stage_change | created
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+  @@index([dealId, createdAt])
+}
