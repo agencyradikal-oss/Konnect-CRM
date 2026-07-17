@@ -1,23 +1,37 @@
 import Link from "next/link";
 import { Search, BadgeCheck, ArrowRight } from "lucide-react";
+import type { Business, Category } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
+type FeaturedBusiness = Business & { category: Category };
+
 export default async function HomePage() {
-  const [categories, featured] = await Promise.all([
-    prisma.category.findMany({
-      where: { parentId: null },
-      orderBy: { nameEs: "asc" },
-    }),
-    prisma.business.findMany({
-      where: { status: "ACTIVE", featured: true },
-      include: { category: true },
-      take: 6,
-    }),
-  ]);
+  let categories: Category[] = [];
+  let featured: FeaturedBusiness[] = [];
+  let dbError = false;
+
+  try {
+    [categories, featured] = await Promise.all([
+      prisma.category.findMany({
+        where: { parentId: null },
+        orderBy: { nameEs: "asc" },
+      }),
+      prisma.business.findMany({
+        where: { status: "ACTIVE", featured: true },
+        include: { category: true },
+        take: 6,
+      }),
+    ]);
+  } catch (error) {
+    dbError = true;
+    console.error("[home] Database unavailable:", error);
+  }
 
   return (
     <>
@@ -51,6 +65,16 @@ export default async function HomePage() {
           </form>
         </div>
       </section>
+
+      {dbError && (
+        <div className="mx-auto max-w-6xl px-4 pt-6">
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            No pudimos cargar el directorio ahora. Verifica que{" "}
+            <code className="rounded bg-amber-100 px-1">DATABASE_URL</code> de
+            Neon esté configurada en Vercel.
+          </div>
+        </div>
+      )}
 
       {/* Categorías */}
       <section className="mx-auto max-w-6xl px-4 py-12">

@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@prisma/client": "6",
+    "@prisma/client": "^6.19.3",
     "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -42,12 +42,12 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
-    "@types/node": "^20",
+    "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "prisma": "6",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5"
