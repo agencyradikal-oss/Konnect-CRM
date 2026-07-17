@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { DealStage, LeadStatus } from "@prisma/client";
+import type { DealStage, LeadSource, LeadStatus } from "@prisma/client";
 
 const stageStyles: Record<DealStage, string> = {
   NUEVO: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
@@ -52,7 +52,7 @@ export function LeadStatusBadge({ status }: { status: LeadStatus }) {
   );
 }
 
-export const leadSourceLabels: Record<string, string> = {
+export const leadSourceLabels: Record<LeadSource, string> = {
   DIRECTORY_FORM: "Formulario",
   QUOTE_REQUEST: "Cotización",
   CLICK_CALL: "Llamada",
@@ -61,3 +61,23 @@ export const leadSourceLabels: Record<string, string> = {
   IMPORT: "Importado",
   REFERRAL: "Referido",
 };
+
+const sourceStyles: Record<LeadSource, string> = {
+  DIRECTORY_FORM: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300",
+  QUOTE_REQUEST: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  CLICK_CALL: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  CLICK_WHATSAPP: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  MANUAL: "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300",
+  IMPORT: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
+  REFERRAL: "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300",
+};
+
+export function LeadSourceBadge({ source }: { source: LeadSource }) {
+  return (
+    <Badge variant="secondary" className={cn("border-0", sourceStyles[source])}>
+      {leadSourceLabels[source]}
+    </Badge>
+  );
+}
+
+export { statusLabels as leadStatusLabels };

@@ -24,6 +24,7 @@ export async function updateLeadStatus(input: unknown) {
   if (count === 0) return { ok: false as const, error: "Lead no encontrado." };
 
   revalidatePath("/app/leads");
+  revalidatePath("/app", "layout");
   return { ok: true as const };
 }
 
@@ -48,7 +49,7 @@ export async function convertLead(input: unknown) {
       data: {
         businessId,
         contactId: contact.id,
-        title: `Oportunidad — ${lead.name}`,
+        title: `Solicitud de ${lead.name}`,
         stage: DealStage.NUEVO,
       },
     });
@@ -68,6 +69,8 @@ export async function convertLead(input: unknown) {
 
   revalidatePath("/app/leads");
   revalidatePath("/app/deals");
+  revalidatePath("/app/contactos");
+  revalidatePath("/app", "layout");
   return { ok: true as const };
 }
 

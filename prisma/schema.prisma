@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon pooler (DATABASE_URL) + conexión directa para migraciones
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ============ Auth / Tenant ============
@@ -232,4 +234,13 @@ model Activity {
 
   @@index([businessId])
   @@index([dealId, createdAt])
+}
+
+/// Rate limit de formularios públicos (máx N envíos / hora por IP).
+model LeadRateLimit {
+  id        String   @id @default(cuid())
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
 }

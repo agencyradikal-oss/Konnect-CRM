@@ -2,18 +2,18 @@
 
 import { Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { trackClickInteraction } from "@/actions/bridge";
+import { trackContactClick } from "@/actions/bridge";
 
 /**
  * El Puente: click-to-call y WhatsApp registran un Lead
- * con source tracking antes de abrir el enlace.
+ * con source tracking ANTES de abrir el enlace.
  */
 export function ClickActions({
-  businessId,
+  businessSlug,
   phone,
   whatsapp,
 }: {
-  businessId: string;
+  businessSlug: string;
   phone: string | null;
   whatsapp: string | null;
 }) {
@@ -27,7 +27,7 @@ export function ClickActions({
           size="lg"
           className="flex-1"
           onClick={() => {
-            void trackClickInteraction({ businessId, source: "CLICK_CALL" });
+            void trackContactClick(businessSlug, "CLICK_CALL");
           }}
         >
           <a href={`tel:${phone.replace(/[^+\d]/g, "")}`}>
@@ -42,7 +42,7 @@ export function ClickActions({
           variant="secondary"
           className="flex-1"
           onClick={() => {
-            void trackClickInteraction({ businessId, source: "CLICK_WHATSAPP" });
+            void trackContactClick(businessSlug, "CLICK_WHATSAPP");
           }}
         >
           <a

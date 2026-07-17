@@ -134,7 +134,7 @@ export default async function NegocioPage({ params }: Props) {
 
         <div className="w-full md:w-80">
           <ClickActions
-            businessId={business.id}
+            businessSlug={business.slug}
             phone={business.phone}
             whatsapp={business.whatsapp}
           />
@@ -188,10 +188,10 @@ export default async function NegocioPage({ params }: Props) {
         {/* Formulario de contacto — El Puente */}
         <Card className="h-fit lg:sticky lg:top-24">
           <CardHeader>
-            <CardTitle>Contacta a {business.name}</CardTitle>
+            <CardTitle>Contactar</CardTitle>
           </CardHeader>
           <CardContent>
-            <ContactForm businessId={business.id} />
+            <ContactForm businessSlug={business.slug} />
           </CardContent>
         </Card>
       </div>

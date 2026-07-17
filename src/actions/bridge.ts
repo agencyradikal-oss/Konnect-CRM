@@ -3,66 +3,132 @@
 import { z } from "zod";
 import { LeadSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { assertLeadFormRateLimit } from "@/lib/rate-limit";
+import { sendNewLeadEmail } from "@/lib/email";
 
 /**
  * El Puente: toda interacción del perfil público se registra
  * como Lead en el CRM del negocio, con source tracking.
  */
 
-const contactSchema = z.object({
-  businessId: z.string().min(1),
-  source: z.enum([LeadSource.DIRECTORY_FORM, LeadSource.QUOTE_REQUEST]),
-  name: z.string().min(1, "Tu nombre es requerido").max(120),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().max(30).optional().or(z.literal("")),
-  message: z.string().min(1, "Escribe un mensaje").max(2000),
-});
+const leadDataSchema = z
+  .object({
+    name: z.string().min(1, "Tu nombre es requerido").max(120),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    phone: z.string().max(30).optional().or(z.literal("")),
+    message: z.string().max(2000).optional().or(z.literal("")),
+  })
+  .superRefine((val, ctx) => {
+    const hasEmail = Boolean(val.email?.trim());
+    const hasPhone = Boolean(val.phone?.trim());
+    if (!hasEmail && !hasPhone) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Indica un email o un teléfono.",
+        path: ["email"],
+      });
+    }
+  });
 
-export async function createLeadFromForm(input: unknown) {
-  const data = contactSchema.parse(input);
+const formSourceSchema = z.enum([
+  LeadSource.DIRECTORY_FORM,
+  LeadSource.QUOTE_REQUEST,
+]);
+
+export async function createLeadFromDirectory(
+  businessSlug: string,
+  data: unknown,
+  source: unknown,
+) {
+  const slug = z.string().min(1).parse(businessSlug);
+  const leadSource = formSourceSchema.parse(source);
+  const parsed = leadDataSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    };
+  }
 
   const business = await prisma.business.findUnique({
-    where: { id: data.businessId },
+    where: { slug },
+    select: {
+      id: true,
+      status: true,
+      name: true,
+      email: true,
+      users: {
+        where: { role: { in: ["BUSINESS_OWNER", "BUSINESS_STAFF"] } },
+        select: { email: true },
+        take: 3,
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!business || business.status !== "ACTIVE") {
+    return { ok: false as const, error: "Negocio no disponible." };
+  }
+
+  const rate = await assertLeadFormRateLimit();
+  if (!rate.ok) return rate;
+
+  const lead = await prisma.lead.create({
+    data: {
+      businessId: business.id,
+      name: parsed.data.name.trim(),
+      email: parsed.data.email?.trim() || null,
+      phone: parsed.data.phone?.trim() || null,
+      message: parsed.data.message?.trim() || null,
+      source: leadSource,
+      status: "NEW",
+    },
+  });
+
+  const notifyTo =
+    business.email?.trim() ||
+    business.users.map((u) => u.email).find(Boolean) ||
+    null;
+
+  if (notifyTo) {
+    void sendNewLeadEmail({
+      to: notifyTo,
+      businessName: business.name,
+      leadName: lead.name,
+      message: lead.message,
+      source: leadSource,
+    }).catch((err) => console.error("[bridge] email lead:", err));
+  }
+
+  return { ok: true as const, leadId: lead.id };
+}
+
+const clickTypeSchema = z.enum(["CLICK_CALL", "CLICK_WHATSAPP"]);
+
+/** Click-to-call / WhatsApp: lead mínimo, fire-and-forget desde el cliente. */
+export async function trackContactClick(
+  businessSlug: string,
+  type: unknown,
+) {
+  const slug = z.string().min(1).parse(businessSlug);
+  const source = clickTypeSchema.parse(type) as
+    | typeof LeadSource.CLICK_CALL
+    | typeof LeadSource.CLICK_WHATSAPP;
+
+  const business = await prisma.business.findUnique({
+    where: { slug },
     select: { id: true, status: true },
   });
   if (!business || business.status !== "ACTIVE") {
-    return { ok: false as const, error: "Negocio no disponible." };
+    return { ok: false as const };
   }
 
   await prisma.lead.create({
     data: {
       businessId: business.id,
-      name: data.name,
-      email: data.email || null,
-      phone: data.phone || null,
-      message: data.message,
-      source: data.source,
-    },
-  });
-
-  return { ok: true as const };
-}
-
-const clickSchema = z.object({
-  businessId: z.string().min(1),
-  source: z.enum([LeadSource.CLICK_CALL, LeadSource.CLICK_WHATSAPP]),
-});
-
-/** Click-to-call / WhatsApp: lead anónimo con source tracking. */
-export async function trackClickInteraction(input: unknown) {
-  const data = clickSchema.parse(input);
-
-  const business = await prisma.business.findUnique({
-    where: { id: data.businessId },
-    select: { id: true, status: true },
-  });
-  if (!business || business.status !== "ACTIVE") return { ok: false as const };
-
-  await prisma.lead.create({
-    data: {
-      businessId: business.id,
-      name: data.source === LeadSource.CLICK_CALL ? "Llamada desde el perfil" : "WhatsApp desde el perfil",
-      source: data.source,
+      name: "Visitante del directorio",
+      source,
+      status: "NEW",
       message: null,
     },
   });

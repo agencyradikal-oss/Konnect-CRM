@@ -2,18 +2,42 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { MessageSquare, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createLeadFromForm } from "@/actions/bridge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { createLeadFromDirectory } from "@/actions/bridge";
+import type { LeadSource } from "@prisma/client";
 
-export function ContactForm({ businessId }: { businessId: string }) {
+type FormSource = Extract<LeadSource, "DIRECTORY_FORM" | "QUOTE_REQUEST">;
+
+function ContactDialog({
+  businessSlug,
+  source,
+  trigger,
+  title,
+  description,
+  submitLabel,
+}: {
+  businessSlug: string;
+  source: FormSource;
+  trigger: React.ReactNode;
+  title: string;
+  description: string;
+  submitLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [source, setSource] = useState<"DIRECTORY_FORM" | "QUOTE_REQUEST">(
-    "DIRECTORY_FORM"
-  );
+  const isQuote = source === "QUOTE_REQUEST";
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,12 +46,17 @@ export function ContactForm({ businessId }: { businessId: string }) {
 
     startTransition(async () => {
       try {
-        const res = await createLeadFromForm({ ...data, businessId, source });
+        const res = await createLeadFromDirectory(businessSlug, data, source);
         if (res.ok) {
-          toast.success("¡Mensaje enviado! El negocio te contactará pronto.");
+          toast.success(
+            isQuote
+              ? "¡Cotización enviada! El negocio te contactará pronto."
+              : "¡Mensaje enviado! El negocio te contactará pronto.",
+          );
           form.reset();
+          setOpen(false);
         } else {
-          toast.error(res.error ?? "No se pudo enviar el mensaje.");
+          toast.error(res.error ?? "No se pudo enviar.");
         }
       } catch {
         toast.error("Revisa los campos e intenta de nuevo.");
@@ -36,58 +65,98 @@ export function ContactForm({ businessId }: { businessId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <Tabs
-        value={source}
-        onValueChange={(v) => setSource(v as typeof source)}
-      >
-        <TabsList className="w-full">
-          <TabsTrigger value="DIRECTORY_FORM" className="flex-1">
-            Mensaje
-          </TabsTrigger>
-          <TabsTrigger value="QUOTE_REQUEST" className="flex-1">
-            Cotización
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
-      <div className="space-y-2">
-        <Label htmlFor="name">Nombre *</Label>
-        <Input id="name" name="name" required placeholder="Tu nombre" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="phone">Teléfono</Label>
-          <Input id="phone" name="phone" type="tel" placeholder="(404) 555-0100" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" placeholder="tu@email.com" />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="message">
-          {source === "QUOTE_REQUEST" ? "¿Qué necesitas cotizar? *" : "Mensaje *"}
-        </Label>
-        <Textarea
-          id="message"
-          name="message"
-          required
-          rows={4}
-          placeholder={
-            source === "QUOTE_REQUEST"
-              ? "Describe el trabajo o servicio que necesitas..."
-              : "Escribe tu mensaje..."
-          }
-        />
-      </div>
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending
-          ? "Enviando..."
-          : source === "QUOTE_REQUEST"
-            ? "Pedir cotización"
-            : "Enviar mensaje"}
-      </Button>
-    </form>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`name-${source}`}>Nombre *</Label>
+            <Input
+              id={`name-${source}`}
+              name="name"
+              required
+              placeholder="Tu nombre"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor={`phone-${source}`}>Teléfono</Label>
+              <Input
+                id={`phone-${source}`}
+                name="phone"
+                type="tel"
+                placeholder="(404) 555-0100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`email-${source}`}>Email</Label>
+              <Input
+                id={`email-${source}`}
+                name="email"
+                type="email"
+                placeholder="tu@email.com"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Indica al menos un teléfono o email.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor={`message-${source}`}>
+              {isQuote ? "¿Qué necesitas cotizar?" : "Mensaje"}
+            </Label>
+            <Textarea
+              id={`message-${source}`}
+              name="message"
+              rows={4}
+              placeholder={
+                isQuote
+                  ? "Describe el trabajo o servicio que necesitas..."
+                  : "Escribe tu mensaje..."
+              }
+            />
+          </div>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Enviando..." : submitLabel}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ContactForm({ businessSlug }: { businessSlug: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <ContactDialog
+        businessSlug={businessSlug}
+        source="DIRECTORY_FORM"
+        title="Enviar mensaje"
+        description="Tu mensaje se registra como lead en el CRM del negocio."
+        submitLabel="Enviar mensaje"
+        trigger={
+          <Button className="w-full" size="lg">
+            <MessageSquare className="size-4" /> Enviar mensaje
+          </Button>
+        }
+      />
+      <ContactDialog
+        businessSlug={businessSlug}
+        source="QUOTE_REQUEST"
+        title="Solicitar cotización"
+        description="Describe lo que necesitas y el negocio te responderá."
+        submitLabel="Pedir cotización"
+        trigger={
+          <Button className="w-full" size="lg" variant="secondary">
+            <FileText className="size-4" /> Solicitar cotización
+          </Button>
+        }
+      />
+    </div>
   );
 }

@@ -8,6 +8,7 @@ import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SidebarNav } from "@/components/crm/sidebar-nav";
 import { MobileNav } from "@/components/crm/mobile-nav";
+import { LeadsBell } from "@/components/crm/leads-bell";
 
 export default async function CrmLayout({
   children,
@@ -18,14 +19,45 @@ export default async function CrmLayout({
   if (!session?.user) redirect("/login?callbackUrl=/app/dashboard");
   if (!session.user.businessId) redirect("/registrar-empresa");
 
-  const business = await prisma.business.findUnique({
-    where: { id: session.user.businessId },
-    select: { name: true, plan: true, status: true, slug: true },
-  });
+  const businessId = session.user.businessId;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [business, newLeadsCount, recentNewLeads] = await Promise.all([
+    prisma.business.findUnique({
+      where: { id: businessId },
+      select: { name: true, plan: true, status: true, slug: true },
+    }),
+    prisma.lead.count({
+      where: { businessId, status: "NEW" },
+    }),
+    prisma.lead.findMany({
+      where: {
+        businessId,
+        status: "NEW",
+        createdAt: { gte: sevenDaysAgo },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: {
+        id: true,
+        name: true,
+        source: true,
+        createdAt: true,
+        message: true,
+      },
+    }),
+  ]);
+
+  const bellLeads = recentNewLeads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    source: l.source,
+    createdAt: l.createdAt.toISOString(),
+    message: l.message,
+  }));
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar desktop */}
       <aside className="hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="border-b border-sidebar-border p-4">
           <Link href="/" className="flex items-center gap-2 font-bold">
@@ -40,7 +72,7 @@ export default async function CrmLayout({
           </Badge>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <SidebarNav />
+          <SidebarNav newLeadsCount={newLeadsCount} />
         </div>
         <form
           action={async () => {
@@ -59,18 +91,21 @@ export default async function CrmLayout({
         </form>
       </aside>
 
-      {/* Contenido */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b px-4 md:justify-end">
-          <MobileNav />
-          <div className="flex items-center gap-3">
+        <header className="flex h-14 items-center justify-between border-b px-4">
+          <MobileNav newLeadsCount={newLeadsCount} />
+          <div className="flex items-center gap-2 md:gap-3">
+            <LeadsBell leads={bellLeads} />
             {business?.status === "PENDING" && (
-              <Badge variant="outline" className="border-amber-500 text-amber-600">
+              <Badge
+                variant="outline"
+                className="hidden border-amber-500 text-amber-600 sm:inline-flex"
+              >
                 Pendiente de aprobación
               </Badge>
             )}
             {business?.slug && business.status === "ACTIVE" && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
                 <Link href={`/negocio/${business.slug}`} target="_blank">
                   Ver perfil público
                 </Link>
