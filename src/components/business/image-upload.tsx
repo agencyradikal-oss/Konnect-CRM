@@ -6,29 +6,35 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/compress-image";
+import { uploadPublicImage } from "@/lib/upload-public-image";
 
+type Folder = "logo" | "cover" | "gallery" | "uploads";
+
+/**
+ * Comprime + sube al Blob público vía `/api/blob/upload`.
+ * Expone la URL resultante (no el File) para evitar límites de body en Server Actions.
+ */
 export function ImageUpload({
   label,
-  file,
-  onChange,
+  folder,
+  url,
+  onUrlChange,
   existingUrl,
   aspect = "square",
 }: {
   label: string;
-  file: File | null;
-  onChange: (file: File | null) => void;
+  folder: Folder;
+  url: string | null;
+  onUrlChange: (url: string | null) => void;
   existingUrl?: string | null;
   aspect?: "square" | "wide";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function handleFile(next: File | null) {
-    if (preview) URL.revokeObjectURL(preview);
     if (!next) {
-      setPreview(null);
-      onChange(null);
+      onUrlChange(null);
       return;
     }
 
@@ -39,19 +45,23 @@ export function ImageUpload({
         maxHeight: aspect === "wide" ? 1080 : 1200,
         maxBytes: 900_000,
       });
-      setPreview(URL.createObjectURL(compressed));
-      onChange(compressed);
-    } catch {
-      toast.error("No se pudo procesar la imagen. Prueba con otra más pequeña.");
-      setPreview(null);
-      onChange(null);
+      const blob = await uploadPublicImage(compressed, folder);
+      onUrlChange(blob.url);
+      toast.success("Imagen subida.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo subir la imagen. Prueba con otra más pequeña.",
+      );
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  const shown = preview ?? existingUrl ?? null;
+  const shown = url ?? existingUrl ?? null;
+  const isNew = Boolean(url);
 
   return (
     <div className="space-y-2">
@@ -59,7 +69,7 @@ export function ImageUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
         onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
       />
@@ -74,7 +84,7 @@ export function ImageUpload({
               aspect === "square" ? "size-28" : "h-28 w-56",
             )}
           />
-          {file && (
+          {isNew && (
             <Button
               type="button"
               size="icon"
@@ -96,15 +106,10 @@ export function ImageUpload({
           onClick={() => inputRef.current?.click()}
         >
           <ImagePlus className="size-4" />
-          {busy ? "Procesando…" : shown ? "Cambiar imagen" : "Subir imagen"}
+          {busy ? "Subiendo…" : shown ? "Cambiar imagen" : "Subir imagen"}
         </Button>
-        {file && (
-          <span className="ml-2 text-xs text-muted-foreground">
-            {(file.size / 1024).toFixed(0)} KB
-          </span>
-        )}
         <p className="mt-1 text-xs text-muted-foreground">
-          Máx. ~1 MB por imagen (se comprime automáticamente).
+          Máx. ~1 MB (se comprime y sube a Vercel Blob).
         </p>
       </div>
     </div>

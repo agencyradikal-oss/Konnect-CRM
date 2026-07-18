@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import { getAppBaseUrl } from "@/lib/app-url";
+import { brand } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +25,12 @@ export const metadata: Metadata = {
   },
   description:
     "Encuentra negocios hispanos en Atlanta metro: remodelación, restaurantes, salud, legal y más. Contacta directo en español.",
+  // Favicon / PWA icons — un solo archivo en public/brand/iso.png (ver src/lib/brand.ts)
+  icons: {
+    icon: [{ url: brand.isoSrc, type: "image/png" }],
+    apple: [{ url: brand.isoSrc }],
+    shortcut: brand.isoSrc,
+  },
 };
 
 export default async function RootLayout({

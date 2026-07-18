@@ -2,10 +2,22 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { auth, requireBusinessSession, unstable_update } from "@/lib/auth";
 import { geocodeAddress } from "@/lib/geocode";
+
+/** Solo acepta URLs del store Blob de Vercel (subidas vía /api/blob/upload). */
+function parseBlobUrl(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    const u = new URL(raw.trim());
+    if (!u.hostname.endsWith(".blob.vercel-storage.com")) return null;
+    if (u.protocol !== "https:") return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
 
 const slugify = (s: string) =>
   s
@@ -48,24 +60,6 @@ const wizardSchema = z.object({
   // Paso 3
   hours: hoursSchema,
 });
-
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB
-
-async function uploadImage(file: File | null, prefix: string) {
-  if (!file || file.size === 0) return null;
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn("[blob] BLOB_READ_WRITE_TOKEN no configurado; upload omitido.");
-    return null;
-  }
-  if (file.size > MAX_IMAGE_BYTES) throw new Error("La imagen supera 4MB.");
-  if (!file.type.startsWith("image/")) throw new Error("El archivo debe ser una imagen.");
-
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const blob = await put(`${prefix}-${Date.now()}.${ext}`, file, {
-    access: "public",
-  });
-  return blob.url;
-}
 
 /** Wizard de registro: crea Business PENDING y asigna businessId al usuario. */
 export async function registerBusinessFull(formData: FormData) {
@@ -117,26 +111,8 @@ export async function registerBusinessFull(formData: FormData) {
       zip: data.zip,
     });
 
-    let logoUrl: string | null = null;
-    let coverUrl: string | null = null;
-    try {
-      logoUrl = await uploadImage(
-        formData.get("logo") as File | null,
-        `businesses/${slug}/logo`,
-      );
-      coverUrl = await uploadImage(
-        formData.get("cover") as File | null,
-        `businesses/${slug}/cover`,
-      );
-    } catch (error) {
-      return {
-        ok: false as const,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Error subiendo imágenes. Puedes publicar sin fotos y subirlas después.",
-      };
-    }
+    const logoUrl = parseBlobUrl(formData.get("logoUrl"));
+    const coverUrl = parseBlobUrl(formData.get("coverUrl"));
 
     const business = await prisma.$transaction(async (tx) => {
       const created = await tx.business.create({
@@ -233,23 +209,8 @@ export async function updateBusinessProfile(formData: FormData) {
     ? await geocodeAddress({ address: data.address, city: data.city, zip: data.zip })
     : null;
 
-  let logoUrl: string | null = null;
-  let coverUrl: string | null = null;
-  try {
-    logoUrl = await uploadImage(
-      formData.get("logo") as File | null,
-      `businesses/${current.slug}/logo`
-    );
-    coverUrl = await uploadImage(
-      formData.get("cover") as File | null,
-      `businesses/${current.slug}/cover`
-    );
-  } catch (error) {
-    return {
-      ok: false as const,
-      error: error instanceof Error ? error.message : "Error subiendo imágenes.",
-    };
-  }
+  const logoUrl = parseBlobUrl(formData.get("logoUrl"));
+  const coverUrl = parseBlobUrl(formData.get("coverUrl"));
 
   await prisma.business.update({
     where: { id: businessId },
@@ -279,10 +240,15 @@ export async function updateBusinessProfile(formData: FormData) {
   return { ok: true as const };
 }
 
-/** Sube una foto a la galería respetando el límite del plan. */
-export async function addGalleryImage(formData: FormData) {
+/** Guarda en galería una URL ya subida a Blob (vía /api/blob/upload). */
+export async function addGalleryImage(input: unknown) {
   const { businessId } = await requireBusinessSession();
   const { getPlanLimits } = await import("@/lib/plans");
+  const { url: rawUrl } = z.object({ url: z.string().url() }).parse(input);
+  const url = parseBlobUrl(rawUrl);
+  if (!url) {
+    return { ok: false as const, error: "URL de imagen inválida." };
+  }
 
   const business = await prisma.business.findUniqueOrThrow({
     where: { id: businessId },
@@ -297,32 +263,14 @@ export async function addGalleryImage(formData: FormData) {
     };
   }
 
-  try {
-    const url = await uploadImage(
-      formData.get("image") as File | null,
-      `businesses/${business.slug}/gallery`,
-    );
-    if (!url) {
-      return {
-        ok: false as const,
-        error: "No se pudo subir la imagen. Verifica BLOB_READ_WRITE_TOKEN.",
-      };
-    }
+  await prisma.business.update({
+    where: { id: businessId },
+    data: { gallery: { push: url } },
+  });
 
-    await prisma.business.update({
-      where: { id: businessId },
-      data: { gallery: { push: url } },
-    });
-
-    revalidatePath("/app/perfil");
-    revalidatePath(`/negocio/${business.slug}`);
-    return { ok: true as const, url };
-  } catch (error) {
-    return {
-      ok: false as const,
-      error: error instanceof Error ? error.message : "Error subiendo imagen.",
-    };
-  }
+  revalidatePath("/app/perfil");
+  revalidatePath(`/negocio/${business.slug}`);
+  return { ok: true as const, url };
 }
 
 export async function removeGalleryImage(input: unknown) {

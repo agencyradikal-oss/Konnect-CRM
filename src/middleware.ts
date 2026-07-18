@@ -7,10 +7,12 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl } = req;
   const user = req.auth?.user;
+  // JWT invalidado (usuario desactivado) → tratar como no autenticado
+  const authed = Boolean(user?.id);
 
   // /app/* requiere sesión con businessId
   if (nextUrl.pathname.startsWith("/app")) {
-    if (!user) {
+    if (!authed || !user) {
       const login = new URL("/login", nextUrl);
       login.searchParams.set("callbackUrl", nextUrl.pathname);
       return NextResponse.redirect(login);
@@ -22,7 +24,7 @@ export default auth((req) => {
 
   // /admin/* requiere SUPER_ADMIN
   if (nextUrl.pathname.startsWith("/admin")) {
-    if (!user) {
+    if (!authed || !user) {
       const login = new URL("/login", nextUrl);
       login.searchParams.set("callbackUrl", nextUrl.pathname);
       return NextResponse.redirect(login);

@@ -29,7 +29,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
         });
-        if (!user?.passwordHash) return null;
+        if (!user?.passwordHash || user.disabled) return null;
 
         const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
@@ -48,8 +48,13 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account }) {
-      // Google: asegurar que el usuario exista en la DB
       if (account?.provider === "google" && user.email) {
+        const existing = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { disabled: true },
+        });
+        if (existing?.disabled) return false;
+
         await prisma.user.upsert({
           where: { email: user.email },
           update: { name: user.name ?? undefined },
@@ -69,29 +74,37 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             where: { email: user.email },
           });
           if (dbUser) {
+            if (dbUser.disabled) {
+              token.disabled = true;
+              return token;
+            }
             token.sub = dbUser.id;
             token.role = dbUser.role;
             token.businessId = dbUser.businessId;
+            token.disabled = false;
           }
         } else {
           token.role = user.role;
           token.businessId = user.businessId;
+          token.disabled = false;
         }
       }
-      // Refresh tras registrar negocio (unstable_update)
       if (trigger === "update" && session?.user?.businessId) {
         token.businessId = session.user.businessId;
       }
-      // Si el JWT aún no tiene tenant pero la DB sí (post-onboarding), sincroniza.
-      if (token.sub && !token.businessId) {
+      // Sincroniza tenant / bloqueo desde DB
+      if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { businessId: true, role: true },
+          select: { businessId: true, role: true, disabled: true },
         });
-        if (dbUser?.businessId) {
-          token.businessId = dbUser.businessId;
-          token.role = dbUser.role;
+        if (!dbUser || dbUser.disabled) {
+          token.disabled = true;
+          return token;
         }
+        token.role = dbUser.role;
+        token.businessId = dbUser.businessId;
+        token.disabled = false;
       }
       return token;
     },

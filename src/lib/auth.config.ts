@@ -20,9 +20,15 @@ export const authConfig = {
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
+        if (token.disabled || !token.sub || !token.role) {
+          session.user.id = "";
+          session.user.role = "BUSINESS_OWNER";
+          session.user.businessId = null;
+          return session;
+        }
+        session.user.id = token.sub;
         session.user.role = token.role;
-        session.user.businessId = token.businessId;
+        session.user.businessId = token.businessId ?? null;
       }
       return session;
     },

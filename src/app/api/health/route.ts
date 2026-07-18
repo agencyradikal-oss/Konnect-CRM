@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  getPublicBlobStoreId,
+  isPublicBlobConfigured,
+} from "@/lib/blob-public";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const hasDatabaseUrl = Boolean(process.env.DATABASE_URL?.trim());
   const hasUnpooledUrl = Boolean(process.env.DATABASE_URL_UNPOOLED?.trim());
+  const hasPublicBlob = isPublicBlobConfigured();
+  const publicBlobStoreId = getPublicBlobStoreId();
   let dbHost: string | null = null;
   let unpooledHost: string | null = null;
 
@@ -31,6 +37,8 @@ export async function GET() {
       ok: true,
       hasDatabaseUrl,
       hasUnpooledUrl,
+      hasPublicBlob,
+      publicBlobStoreId,
       dbHost,
       unpooledHost,
       categories,
@@ -43,6 +51,8 @@ export async function GET() {
         ok: false,
         hasDatabaseUrl,
         hasUnpooledUrl,
+        hasPublicBlob,
+        publicBlobStoreId,
         dbHost,
         unpooledHost,
         code: err.code ?? null,

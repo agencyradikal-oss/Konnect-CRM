@@ -11,69 +11,83 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
-import { requireSuperAdmin, signOut } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import {
   BusinessModerationActions,
   ReviewModerationActions,
 } from "@/components/admin/moderation-actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   await requireSuperAdmin();
 
-  const [pendingBusinesses, pendingReviews, allBusinesses] = await Promise.all([
-    prisma.business.findMany({
-      where: { status: "PENDING" },
-      include: {
-        category: { select: { nameEs: true } },
-        users: { select: { email: true, name: true }, take: 1 },
-      },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.review.findMany({
-      where: { approved: false },
-      include: {
-        business: { select: { name: true, slug: true } },
-      },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.business.findMany({
-      where: { status: { not: "PENDING" } },
-      include: {
-        category: { select: { nameEs: true } },
-        _count: { select: { leads: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-  ]);
+  const [pendingBusinesses, pendingReviews, allBusinesses, userStats] =
+    await Promise.all([
+      prisma.business.findMany({
+        where: { status: "PENDING" },
+        include: {
+          category: { select: { nameEs: true } },
+          users: { select: { email: true, name: true }, take: 1 },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.review.findMany({
+        where: { approved: false },
+        include: {
+          business: { select: { name: true, slug: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.business.findMany({
+        where: { status: { not: "PENDING" } },
+        include: {
+          category: { select: { nameEs: true } },
+          _count: { select: { leads: true, users: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      prisma.user.groupBy({
+        by: ["role"],
+        _count: { _all: true },
+      }),
+    ]);
+
+  const totalUsers = userStats.reduce((s, r) => s + r._count._all, 0);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            Panel de administración{" "}
-            <span className="text-primary">Konnect™</span>
+            Moderación <span className="text-primary">Konnect™</span>
           </h1>
           <p className="text-muted-foreground">
             {pendingBusinesses.length} negocio
             {pendingBusinesses.length === 1 ? "" : "s"} y {pendingReviews.length}{" "}
-            reseña{pendingReviews.length === 1 ? "" : "s"} pendientes
+            reseña{pendingReviews.length === 1 ? "" : "s"} pendientes ·{" "}
+            {totalUsers} usuarios
           </p>
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}
-        >
-          <Button variant="outline" size="sm" type="submit">
-            Cerrar sesión
-          </Button>
-        </form>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/admin/usuarios">Gestionar usuarios</Link>
+        </Button>
       </div>
 
-      {/* Negocios PENDING */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {userStats.map((s) => (
+          <Card key={s.role}>
+            <CardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {s.role.replace("_", " ")}
+              </p>
+              <p className="mt-1 text-2xl font-bold">{s._count._all}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Negocios pendientes de aprobación</CardTitle>
@@ -124,7 +138,8 @@ export default async function AdminPage() {
                         </p>
                       )}
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Dueño: {biz.users[0]?.name ?? "—"} ({biz.users[0]?.email ?? biz.email ?? "sin email"})
+                        Dueño: {biz.users[0]?.name ?? "—"} (
+                        {biz.users[0]?.email ?? biz.email ?? "sin email"})
                       </p>
                     </div>
                   </div>
@@ -136,7 +151,6 @@ export default async function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* Reseñas pendientes */}
       <Card>
         <CardHeader>
           <CardTitle>Reseñas pendientes</CardTitle>
@@ -165,7 +179,9 @@ export default async function AdminPage() {
                   <TableRow key={review.id}>
                     <TableCell>
                       <p className="font-medium">{review.authorName}</p>
-                      <p className="text-xs text-muted-foreground">{review.authorEmail}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {review.authorEmail}
+                      </p>
                     </TableCell>
                     <TableCell>
                       <Link
@@ -191,7 +207,6 @@ export default async function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* Otros negocios */}
       <Card>
         <CardHeader>
           <CardTitle>Otros negocios</CardTitle>
@@ -204,6 +219,7 @@ export default async function AdminPage() {
                 <TableHead className="hidden md:table-cell">Categoría</TableHead>
                 <TableHead className="hidden sm:table-cell">Ciudad</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="hidden lg:table-cell">Usuarios</TableHead>
                 <TableHead className="hidden lg:table-cell">Leads</TableHead>
               </TableRow>
             </TableHeader>
@@ -237,7 +253,12 @@ export default async function AdminPage() {
                       {biz.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">{biz._count.leads}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {biz._count.users}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {biz._count.leads}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

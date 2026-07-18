@@ -64,8 +64,8 @@ export function ProfileForm({
   const [city, setCity] = useState(initial.city);
   const [zip, setZip] = useState(initial.zip);
   const [hours, setHours] = useState<WeekHours>(initial.hours ?? defaultHours);
-  const [logo, setLogo] = useState<File | null>(null);
-  const [cover, setCover] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   function toggleLanguage(lang: string) {
     setLanguages((prev) =>
@@ -89,8 +89,8 @@ export function ProfileForm({
     formData.set("city", city);
     formData.set("zip", zip);
     formData.set("hours", JSON.stringify(hours));
-    if (logo) formData.set("logo", logo);
-    if (cover) formData.set("cover", cover);
+    if (logoUrl) formData.set("logoUrl", logoUrl);
+    if (coverUrl) formData.set("coverUrl", coverUrl);
 
     startTransition(async () => {
       const res = await updateBusinessProfile(formData);
@@ -222,14 +222,16 @@ export function ProfileForm({
         <div className="flex flex-wrap gap-6">
           <ImageUpload
             label="Logo"
-            file={logo}
-            onChange={setLogo}
+            folder="logo"
+            url={logoUrl}
+            onUrlChange={setLogoUrl}
             existingUrl={initial.logoUrl}
           />
           <ImageUpload
             label="Portada"
-            file={cover}
-            onChange={setCover}
+            folder="cover"
+            url={coverUrl}
+            onUrlChange={setCoverUrl}
             existingUrl={initial.coverUrl}
             aspect="wide"
           />

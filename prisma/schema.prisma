@@ -22,9 +22,13 @@ model User {
   role         Role      @default(BUSINESS_OWNER)
   businessId   String?
   business     Business? @relation(fields: [businessId], references: [id])
+  /// Si true, no puede iniciar sesión (gestión desde /admin/usuarios).
+  disabled     Boolean   @default(false)
   createdAt    DateTime  @default(now())
 
   @@index([businessId])
+  @@index([role])
+  @@index([disabled])
 }
 
 enum Role {

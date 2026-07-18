@@ -42,8 +42,8 @@ export function RegisterWizard({ categories }: { categories: CategoryOption[] })
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   // Paso 3
-  const [logo, setLogo] = useState<File | null>(null);
-  const [cover, setCover] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [hours, setHours] = useState<WeekHours>(defaultHours);
 
   function toggleLanguage(lang: string) {
@@ -87,8 +87,8 @@ export function RegisterWizard({ categories }: { categories: CategoryOption[] })
     formData.set("city", city);
     formData.set("zip", zip);
     formData.set("hours", JSON.stringify(hours));
-    if (logo) formData.set("logo", logo);
-    if (cover) formData.set("cover", cover);
+    if (logoUrl) formData.set("logoUrl", logoUrl);
+    if (coverUrl) formData.set("coverUrl", coverUrl);
 
     startTransition(async () => {
       try {
@@ -279,11 +279,17 @@ export function RegisterWizard({ categories }: { categories: CategoryOption[] })
       {step === 2 && (
         <div className="space-y-6">
           <div className="flex flex-wrap gap-6">
-            <ImageUpload label="Logo" file={logo} onChange={setLogo} />
+            <ImageUpload
+              label="Logo"
+              folder="logo"
+              url={logoUrl}
+              onUrlChange={setLogoUrl}
+            />
             <ImageUpload
               label="Portada"
-              file={cover}
-              onChange={setCover}
+              folder="cover"
+              url={coverUrl}
+              onUrlChange={setCoverUrl}
               aspect="wide"
             />
           </div>

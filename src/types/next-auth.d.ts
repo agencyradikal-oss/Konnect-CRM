@@ -19,7 +19,9 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role: Role;
-    businessId: string | null;
+    role?: Role;
+    businessId?: string | null;
+    /** true si el usuario fue desactivado en admin */
+    disabled?: boolean;
   }
 }

@@ -7,6 +7,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addGalleryImage, removeGalleryImage } from "@/actions/business";
 import { compressImage } from "@/lib/compress-image";
+import { uploadPublicImage } from "@/lib/upload-public-image";
 
 export function GalleryManager({
   gallery,
@@ -33,13 +34,14 @@ export function GalleryManager({
           maxHeight: 1600,
           maxBytes: 900_000,
         });
-        const fd = new FormData();
-        fd.set("image", compressed);
-        const res = await addGalleryImage(fd);
+        const blob = await uploadPublicImage(compressed, "gallery");
+        const res = await addGalleryImage({ url: blob.url });
         if (res.ok) toast.success("Foto agregada a la galería.");
         else toast.error(res.error);
-      } catch {
-        toast.error("No se pudo subir la imagen.");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "No se pudo subir la imagen.",
+        );
       } finally {
         if (inputRef.current) inputRef.current.value = "";
       }
@@ -58,7 +60,7 @@ export function GalleryManager({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={(e) => onPick(e.target.files?.[0] ?? null)}
         />

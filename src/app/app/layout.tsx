@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { SidebarNav } from "@/components/crm/sidebar-nav";
 import { MobileNav } from "@/components/crm/mobile-nav";
 import { LeadsBell } from "@/components/crm/leads-bell";
+import { BrandWordmark } from "@/components/brand/brand-mark";
 
 export default async function CrmLayout({
   children,
@@ -68,13 +69,8 @@ export default async function CrmLayout({
     <div className="flex min-h-screen bg-muted/40">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="border-b border-sidebar-border p-4">
-          <Link href="/app/dashboard" className="flex items-center gap-2.5 font-bold">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-sm text-primary-foreground shadow-sm">
-              K
-            </span>
-            <span>
-              Konnect<span className="text-primary">™</span>
-            </span>
+          <Link href="/app/dashboard" className="hover:opacity-90">
+            <BrandWordmark markSize={36} />
           </Link>
           <p className="mt-4 truncate text-sm font-medium text-sidebar-foreground">
             {business?.name}

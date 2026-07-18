@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { LocaleSwitcher } from "@/components/public/locale-switcher";
 import { PublicMobileNav } from "@/components/public/public-mobile-nav";
+import { BrandWordmark } from "@/components/brand/brand-mark";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -21,13 +22,8 @@ export async function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2">
           <PublicMobileNav links={links} />
-          <Link href="/" className="flex items-center gap-2 font-bold">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              K
-            </span>
-            <span className="text-lg">
-              Konnect<span className="text-primary">™</span>
-            </span>
+          <Link href="/" className="hover:opacity-90">
+            <BrandWordmark markSize={32} />
           </Link>
         </div>
 
