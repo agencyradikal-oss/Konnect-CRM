@@ -24,6 +24,7 @@
   },
   "nav": {
     "directory": "Directory",
+    "howItWorks": "How it works",
     "pricing": "Pricing",
     "register": "List your business"
   },
@@ -75,6 +76,12 @@
   },
   "footer": {
     "rights": "© {year} Konnect™ · KMD Agency",
-    "location": "Atlanta metro, Georgia"
+    "location": "Atlanta metro, Georgia",
+    "howItWorks": "How it works",
+    "faq": "FAQ",
+    "pricing": "Pricing",
+    "developers": "Developers",
+    "terms": "Terms",
+    "privacy": "Privacy"
   }
 }

@@ -40,6 +40,14 @@ const wordpressRedirects = [
   { source: "/listings/:slug", destination: "/negocio/:slug", permanent: true },
   { source: "/business/:slug", destination: "/negocio/:slug", permanent: true },
   { source: "/empresa/:slug", destination: "/negocio/:slug", permanent: true },
+  { source: "/terms", destination: "/terminos", permanent: true },
+  { source: "/terms-of-service", destination: "/terminos", permanent: true },
+  { source: "/privacy", destination: "/privacidad", permanent: true },
+  { source: "/privacy-policy", destination: "/privacidad", permanent: true },
+  { source: "/devs", destination: "/developers", permanent: true },
+  { source: "/api-docs", destination: "/developers", permanent: true },
+  { source: "/how-it-works", destination: "/como-funciona", permanent: true },
+  { source: "/como-funciona-konnect", destination: "/como-funciona", permanent: true },
 ];
 
 const nextConfig: NextConfig = {

@@ -140,6 +140,11 @@ Sigue habiendo fallback a `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_ID` si aún no m
 | `/negocio/[slug]` | Perfil público + El Puente + reseñas + JSON-LD |
 | `/categoria/[slug]` | Negocios por categoría |
 | `/precios` | Planes Free / Pro / Premium |
+| `/como-funciona` | How it works — pilares, pasos, El Puente |
+| `/faq` | Preguntas frecuentes |
+| `/developers` | Integraciones y early access API |
+| `/terminos` | Términos y condiciones |
+| `/privacidad` | Política de privacidad |
 | `/registrar-empresa` | Wizard de onboarding (logo/portada) |
 | `/login`, `/signup` | Auth |
 

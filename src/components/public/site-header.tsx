@@ -13,6 +13,7 @@ export async function SiteHeader() {
 
   const links = [
     { href: "/directorio", label: t("directory") },
+    { href: "/como-funciona", label: t("howItWorks") },
     { href: "/precios", label: t("pricing") },
     { href: "/registrar-empresa", label: t("register") },
   ];
