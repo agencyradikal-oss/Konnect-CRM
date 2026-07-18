@@ -1,11 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { requireBusinessSession } from "@/lib/auth";
+import { getCurrentBusiness } from "@/lib/tenant";
 import { ProfileForm } from "@/components/crm/profile-form";
 import { defaultHours, type WeekHours } from "@/components/business/hours-editor";
 
 export default async function PerfilPage() {
-  const { businessId } = await requireBusinessSession();
+  const { businessId } = await getCurrentBusiness();
 
   const [business, categories] = await Promise.all([
     prisma.business.findUniqueOrThrow({ where: { id: businessId } }),

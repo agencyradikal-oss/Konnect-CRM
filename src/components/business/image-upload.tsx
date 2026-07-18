@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/compress-image";
 
 export function ImageUpload({
   label,
@@ -20,11 +22,33 @@ export function ImageUpload({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleFile(next: File | null) {
+  async function handleFile(next: File | null) {
     if (preview) URL.revokeObjectURL(preview);
-    setPreview(next ? URL.createObjectURL(next) : null);
-    onChange(next);
+    if (!next) {
+      setPreview(null);
+      onChange(null);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const compressed = await compressImage(next, {
+        maxWidth: aspect === "wide" ? 1920 : 1200,
+        maxHeight: aspect === "wide" ? 1080 : 1200,
+        maxBytes: 900_000,
+      });
+      setPreview(URL.createObjectURL(compressed));
+      onChange(compressed);
+    } catch {
+      toast.error("No se pudo procesar la imagen. Prueba con otra más pequeña.");
+      setPreview(null);
+      onChange(null);
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   const shown = preview ?? existingUrl ?? null;
@@ -37,7 +61,7 @@ export function ImageUpload({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
       />
       {shown ? (
         <div className="relative inline-block">
@@ -47,7 +71,7 @@ export function ImageUpload({
             alt={label}
             className={cn(
               "rounded-lg border object-cover",
-              aspect === "square" ? "size-28" : "h-28 w-56"
+              aspect === "square" ? "size-28" : "h-28 w-56",
             )}
           />
           {file && (
@@ -56,7 +80,7 @@ export function ImageUpload({
               size="icon"
               variant="destructive"
               className="absolute -right-2 -top-2 size-6 rounded-full"
-              onClick={() => handleFile(null)}
+              onClick={() => void handleFile(null)}
             >
               <X className="size-3" />
             </Button>
@@ -68,14 +92,20 @@ export function ImageUpload({
           type="button"
           variant="outline"
           size="sm"
+          disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
           <ImagePlus className="size-4" />
-          {shown ? "Cambiar imagen" : "Subir imagen"}
+          {busy ? "Procesando…" : shown ? "Cambiar imagen" : "Subir imagen"}
         </Button>
         {file && (
-          <span className="ml-2 text-xs text-muted-foreground">{file.name}</span>
+          <span className="ml-2 text-xs text-muted-foreground">
+            {(file.size / 1024).toFixed(0)} KB
+          </span>
         )}
+        <p className="mt-1 text-xs text-muted-foreground">
+          Máx. ~1 MB por imagen (se comprime automáticamente).
+        </p>
       </div>
     </div>
   );

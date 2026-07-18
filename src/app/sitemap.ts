@@ -1,23 +1,28 @@
 import type { MetadataRoute } from "next";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
 
 // No prerender en build: requiere DATABASE_URL en runtime (Vercel).
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = getAppBaseUrl();
 
   const staticEntries: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: "daily", priority: 1 },
     { url: `${base}/directorio`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${base}/registrar-empresa`, changeFrequency: "monthly", priority: 0.6 },
+    {
+      url: `${base}/registrar-empresa`,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 
-  if (!process.env.DATABASE_URL) {
-    return staticEntries;
-  }
-
   try {
+    if (!process.env.DATABASE_URL?.trim()) {
+      return staticEntries;
+    }
+
     const [businesses, categories] = await Promise.all([
       prisma.business.findMany({
         where: { status: "ACTIVE" },
@@ -41,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
     ];
   } catch (error) {
-    console.error("[sitemap] No se pudo consultar la DB:", error);
+    console.error("[sitemap] No se pudo generar el sitemap completo:", error);
     return staticEntries;
   }
 }

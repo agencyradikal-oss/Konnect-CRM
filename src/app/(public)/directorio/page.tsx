@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { Search } from "lucide-react";
+import type { Business, Category } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/prisma";
 import { BusinessCard } from "@/components/directory/business-card";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Directorio de negocios",
   description:
     "Busca negocios hispanos en Atlanta metro por nombre, categoría o ciudad.",
 };
+
+type ListedBusiness = Business & { category: Category };
 
 export default async function DirectorioPage({
   searchParams,
@@ -18,22 +23,30 @@ export default async function DirectorioPage({
 }) {
   const { q, ciudad } = await searchParams;
 
-  const businesses = await prisma.business.findMany({
-    where: {
-      status: "ACTIVE",
-      ...(q && {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { category: { nameEs: { contains: q, mode: "insensitive" } } },
-        ],
-      }),
-      ...(ciudad && { city: { contains: ciudad, mode: "insensitive" } }),
-    },
-    include: { category: true },
-    orderBy: [{ featured: "desc" }, { verified: "desc" }, { createdAt: "desc" }],
-    take: 50,
-  });
+  let businesses: ListedBusiness[] = [];
+  let dbError = false;
+
+  try {
+    businesses = await prisma.business.findMany({
+      where: {
+        status: "ACTIVE",
+        ...(q && {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { category: { nameEs: { contains: q, mode: "insensitive" } } },
+          ],
+        }),
+        ...(ciudad && { city: { contains: ciudad, mode: "insensitive" } }),
+      },
+      include: { category: true },
+      orderBy: [{ featured: "desc" }, { verified: "desc" }, { createdAt: "desc" }],
+      take: 50,
+    });
+  } catch (error) {
+    dbError = true;
+    console.error("[directorio] Database unavailable:", error);
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -42,6 +55,11 @@ export default async function DirectorioPage({
         {businesses.length} negocio{businesses.length === 1 ? "" : "s"} encontrado
         {businesses.length === 1 ? "" : "s"}
       </p>
+      {dbError && (
+        <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          No pudimos cargar el directorio ahora. Intenta de nuevo en unos minutos.
+        </p>
+      )}
 
       <form className="mt-6 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">

@@ -3,31 +3,43 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BusinessCard } from "@/components/directory/business-card";
 
+export const dynamic = "force-dynamic";
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = await prisma.category.findUnique({ where: { slug } });
-  if (!category) return {};
-  return {
-    title: `${category.nameEs} en Atlanta`,
-    description: `Negocios de ${category.nameEs.toLowerCase()} con atención en español en Atlanta metro.`,
-  };
+  try {
+    const category = await prisma.category.findUnique({ where: { slug } });
+    if (!category) return {};
+    return {
+      title: `${category.nameEs} en Atlanta`,
+      description: `Negocios de ${category.nameEs.toLowerCase()} con atención en español en Atlanta metro.`,
+    };
+  } catch {
+    return {};
+  }
 }
 
 export default async function CategoriaPage({ params }: Props) {
   const { slug } = await params;
 
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    include: {
-      businesses: {
-        where: { status: "ACTIVE" },
-        include: { category: true },
-        orderBy: [{ featured: "desc" }, { verified: "desc" }],
+  let category;
+  try {
+    category = await prisma.category.findUnique({
+      where: { slug },
+      include: {
+        businesses: {
+          where: { status: "ACTIVE" },
+          include: { category: true },
+          orderBy: [{ featured: "desc" }, { verified: "desc" }],
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[categoria] Database unavailable:", error);
+    notFound();
+  }
   if (!category) notFound();
 
   return (

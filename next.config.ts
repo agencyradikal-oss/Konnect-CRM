@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Wizard de registro envía logo + portada vía Server Action (FormData).
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
 };
 
 export default withNextIntl(nextConfig);

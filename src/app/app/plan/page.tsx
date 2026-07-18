@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { requireBusinessSession } from "@/lib/auth";
+import { getCurrentBusiness } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
 const plans = [
@@ -42,7 +42,7 @@ const plans = [
 ];
 
 export default async function PlanPage() {
-  const { businessId } = await requireBusinessSession();
+  const { businessId } = await getCurrentBusiness();
   const business = await prisma.business.findUniqueOrThrow({
     where: { id: businessId },
     select: { plan: true },

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
-import { requireBusinessSession } from "@/lib/auth";
+import { getCurrentBusiness } from "@/lib/tenant";
 import {
   LeadStatusBadge,
   LeadSourceBadge,
@@ -42,7 +42,7 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<{ source?: string; status?: string }>;
 }) {
-  const { businessId } = await requireBusinessSession();
+  const { businessId } = await getCurrentBusiness();
   const params = await searchParams;
 
   const source =

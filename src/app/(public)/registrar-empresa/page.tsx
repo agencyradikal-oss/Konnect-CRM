@@ -21,15 +21,22 @@ const beneficios = [
   "Plan gratis para empezar; Pro y Premium cuando crezcas",
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function RegistrarEmpresaPage() {
   const session = await auth();
   if (session?.user?.businessId) redirect("/app/dashboard");
 
-  const categories = await prisma.category.findMany({
-    where: { parentId: null },
-    orderBy: { nameEs: "asc" },
-    select: { id: true, nameEs: true },
-  });
+  let categories: { id: string; nameEs: string }[] = [];
+  try {
+    categories = await prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: { nameEs: "asc" },
+      select: { id: true, nameEs: true },
+    });
+  } catch (error) {
+    console.error("[registrar-empresa] Database unavailable:", error);
+  }
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 px-4 py-12 lg:grid-cols-2">

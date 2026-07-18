@@ -69,88 +69,122 @@ async function uploadImage(file: File | null, prefix: string) {
 
 /** Wizard de registro: crea Business PENDING y asigna businessId al usuario. */
 export async function registerBusinessFull(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) return { ok: false as const, error: "Inicia sesión primero." };
-  if (session.user.businessId)
-    return { ok: false as const, error: "Ya tienes un negocio registrado." };
-
-  let data;
   try {
-    data = wizardSchema.parse({
-      name: formData.get("name"),
-      categoryId: formData.get("categoryId"),
-      description: formData.get("description") ?? "",
-      languages: JSON.parse(String(formData.get("languages") ?? "[]")),
-      phone: formData.get("phone"),
-      whatsapp: formData.get("whatsapp") ?? "",
-      email: formData.get("email") ?? "",
-      address: formData.get("address") ?? "",
-      city: formData.get("city"),
-      zip: formData.get("zip") ?? "",
-      hours: JSON.parse(String(formData.get("hours") ?? "{}")),
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { ok: false as const, error: error.issues[0]?.message ?? "Datos inválidos." };
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { ok: false as const, error: "Inicia sesión primero." };
     }
-    return { ok: false as const, error: "Datos inválidos." };
-  }
 
-  const slug = await uniqueSlug(data.name);
+    // Preferir DB por si el JWT está desfasado tras un intento previo.
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { businessId: true },
+    });
+    if (dbUser?.businessId || session.user.businessId) {
+      return { ok: false as const, error: "Ya tienes un negocio registrado." };
+    }
 
-  // Geocodificar (no bloquea el registro si falla)
-  const coords = await geocodeAddress({
-    address: data.address,
-    city: data.city,
-    zip: data.zip,
-  });
+    let data;
+    try {
+      data = wizardSchema.parse({
+        name: formData.get("name"),
+        categoryId: formData.get("categoryId"),
+        description: formData.get("description") ?? "",
+        languages: JSON.parse(String(formData.get("languages") ?? "[]")),
+        phone: formData.get("phone"),
+        whatsapp: formData.get("whatsapp") ?? "",
+        email: formData.get("email") ?? "",
+        address: formData.get("address") ?? "",
+        city: formData.get("city"),
+        zip: formData.get("zip") ?? "",
+        hours: JSON.parse(String(formData.get("hours") ?? "{}")),
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          ok: false as const,
+          error: error.issues[0]?.message ?? "Datos inválidos.",
+        };
+      }
+      return { ok: false as const, error: "Datos inválidos." };
+    }
 
-  // Uploads a Vercel Blob
-  let logoUrl: string | null = null;
-  let coverUrl: string | null = null;
-  try {
-    logoUrl = await uploadImage(formData.get("logo") as File | null, `businesses/${slug}/logo`);
-    coverUrl = await uploadImage(formData.get("cover") as File | null, `businesses/${slug}/cover`);
+    const slug = await uniqueSlug(data.name);
+
+    const coords = await geocodeAddress({
+      address: data.address,
+      city: data.city,
+      zip: data.zip,
+    });
+
+    let logoUrl: string | null = null;
+    let coverUrl: string | null = null;
+    try {
+      logoUrl = await uploadImage(
+        formData.get("logo") as File | null,
+        `businesses/${slug}/logo`,
+      );
+      coverUrl = await uploadImage(
+        formData.get("cover") as File | null,
+        `businesses/${slug}/cover`,
+      );
+    } catch (error) {
+      return {
+        ok: false as const,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error subiendo imágenes. Puedes publicar sin fotos y subirlas después.",
+      };
+    }
+
+    const business = await prisma.$transaction(async (tx) => {
+      const created = await tx.business.create({
+        data: {
+          slug,
+          name: data.name,
+          categoryId: data.categoryId,
+          description: data.description || null,
+          languages: data.languages,
+          phone: data.phone,
+          whatsapp: data.whatsapp || null,
+          email: data.email || null,
+          address: data.address || null,
+          city: data.city,
+          zip: data.zip || null,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+          logoUrl,
+          coverUrl,
+          hours: data.hours,
+          status: "PENDING",
+        },
+      });
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: { businessId: created.id, role: "BUSINESS_OWNER" },
+      });
+      return created;
+    });
+
+    await unstable_update({ user: { businessId: business.id } });
+
+    return { ok: true as const, slug: business.slug };
   } catch (error) {
+    console.error("[registerBusinessFull]", error);
+    const message = error instanceof Error ? error.message : "";
+    if (/body exceed|body size|too large/i.test(message)) {
+      return {
+        ok: false as const,
+        error:
+          "Las imágenes son demasiado grandes. Quítalas o usa archivos más pequeños y vuelve a intentar.",
+      };
+    }
     return {
       ok: false as const,
-      error: error instanceof Error ? error.message : "Error subiendo imágenes.",
+      error: "No se pudo registrar el negocio. Intenta de nuevo.",
     };
   }
-
-  const business = await prisma.$transaction(async (tx) => {
-    const created = await tx.business.create({
-      data: {
-        slug,
-        name: data.name,
-        categoryId: data.categoryId,
-        description: data.description || null,
-        languages: data.languages,
-        phone: data.phone,
-        whatsapp: data.whatsapp || null,
-        email: data.email || null,
-        address: data.address || null,
-        city: data.city,
-        zip: data.zip || null,
-        lat: coords?.lat ?? null,
-        lng: coords?.lng ?? null,
-        logoUrl,
-        coverUrl,
-        hours: data.hours,
-        status: "PENDING", // moderación por SUPER_ADMIN
-      },
-    });
-    await tx.user.update({
-      where: { id: session.user.id },
-      data: { businessId: created.id },
-    });
-    return created;
-  });
-
-  // Refrescar businessId en el JWT para que /app/* deje de redirigir
-  await unstable_update({ user: { businessId: business.id } });
-
-  return { ok: true as const, slug: business.slug };
 }
 
 const profileSchema = wizardSchema.extend({

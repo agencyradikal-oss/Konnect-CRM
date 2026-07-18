@@ -1,8 +1,8 @@
 import { Resend } from "resend";
 import type { LeadSource } from "@prisma/client";
+import { getAppBaseUrl } from "@/lib/app-url";
 
 const from = "Konnect <notificaciones@kmd.agency>";
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -28,7 +28,7 @@ export async function sendBusinessApprovedEmail(params: {
     return;
   }
 
-  const profileUrl = `${appUrl}/negocio/${params.slug}`;
+  const profileUrl = `${getAppBaseUrl()}/negocio/${params.slug}`;
 
   try {
     await resend.emails.send({
@@ -75,7 +75,7 @@ export async function sendNewLeadEmail(params: {
     return;
   }
 
-  const leadsUrl = `${appUrl}/app/leads`;
+  const leadsUrl = `${getAppBaseUrl()}/app/leads`;
   const kind = sourceLabels[params.source] ?? "lead";
   const preview = params.message?.trim()
     ? params.message.trim().slice(0, 280)

@@ -82,6 +82,17 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (trigger === "update" && session?.user?.businessId) {
         token.businessId = session.user.businessId;
       }
+      // Si el JWT aún no tiene tenant pero la DB sí (post-onboarding), sincroniza.
+      if (token.sub && !token.businessId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { businessId: true, role: true },
+        });
+        if (dbUser?.businessId) {
+          token.businessId = dbUser.businessId;
+          token.role = dbUser.role;
+        }
+      }
       return token;
     },
   },
@@ -89,11 +100,9 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
 /** Sesión con businessId garantizado — para Server Actions del CRM. */
 export async function requireBusinessSession() {
-  const session = await auth();
-  if (!session?.user?.businessId) {
-    throw new Error("No autorizado: se requiere sesión con negocio.");
-  }
-  return { session, businessId: session.user.businessId };
+  const { getCurrentBusiness } = await import("@/lib/tenant");
+  const { session, businessId } = await getCurrentBusiness();
+  return { session, businessId };
 }
 
 /** Sesión SUPER_ADMIN — para el panel /admin. */

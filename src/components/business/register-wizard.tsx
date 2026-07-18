@@ -91,12 +91,27 @@ export function RegisterWizard({ categories }: { categories: CategoryOption[] })
     if (cover) formData.set("cover", cover);
 
     startTransition(async () => {
-      const res = await registerBusinessFull(formData);
-      if (res.ok) {
-        toast.success("¡Negocio registrado! Tu perfil está en revisión.");
-        router.push("/app/dashboard?nuevo=1");
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await registerBusinessFull(formData);
+        if (res.ok) {
+          toast.success("¡Negocio registrado! Tu perfil está en revisión.");
+          router.refresh();
+          router.push("/app/dashboard?nuevo=1");
+        } else {
+          toast.error(res.error);
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error ?? "");
+        if (/body exceed|body size|too large|413/i.test(message)) {
+          toast.error(
+            "Las imágenes son demasiado grandes. Usa fotos más ligeras (menos de 1 MB) o quítalas y súbelas después en Mi Perfil.",
+          );
+        } else {
+          toast.error(
+            "No se pudo publicar el negocio. Intenta de nuevo o registra sin imágenes.",
+          );
+        }
       }
     });
   }

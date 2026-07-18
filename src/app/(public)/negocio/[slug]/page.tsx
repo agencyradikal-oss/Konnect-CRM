@@ -5,23 +5,31 @@ import { BadgeCheck, Globe, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { ContactForm } from "@/components/directory/contact-form";
 import { ClickActions } from "@/components/directory/click-actions";
+
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
 
 async function getBusiness(slug: string) {
-  return prisma.business.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      reviews: {
-        where: { approved: true },
-        orderBy: { createdAt: "desc" },
-        take: 10,
+  try {
+    return await prisma.business.findUnique({
+      where: { slug },
+      include: {
+        category: true,
+        reviews: {
+          where: { approved: true },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[negocio] Database unavailable:", error);
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -57,7 +65,7 @@ export default async function NegocioPage({ params }: Props) {
     "@type": "LocalBusiness",
     name: business.name,
     description: business.description ?? undefined,
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/negocio/${business.slug}`,
+    url: `${getAppBaseUrl()}/negocio/${business.slug}`,
     telephone: business.phone ?? undefined,
     email: business.email ?? undefined,
     address: {

@@ -20,7 +20,7 @@ const items = [
   { href: "/app/contactos", label: "Contactos", icon: Users },
   { href: "/app/deals", label: "Deals", icon: Handshake },
   { href: "/app/tareas", label: "Tareas", icon: CheckSquare },
-  { href: "/app/perfil", label: "Perfil público", icon: Store },
+  { href: "/app/perfil", label: "Mi Perfil Público", icon: Store },
   { href: "/app/plan", label: "Plan", icon: CreditCard },
 ] as const;
 
@@ -39,6 +39,10 @@ export function SidebarNav({
         const { href, label, icon: Icon } = item;
         const showBadge =
           "showNewBadge" in item && item.showNewBadge && newLeadsCount > 0;
+        const active =
+          href === "/app/dashboard"
+            ? pathname === href || pathname === "/app"
+            : pathname.startsWith(href);
 
         return (
           <Link
@@ -47,15 +51,15 @@ export function SidebarNav({
             onClick={onNavigate}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname.startsWith(href)
+              active
                 ? "bg-sidebar-primary text-sidebar-primary-foreground"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" />
-            <span className="flex-1">{label}</span>
+            <span className="flex-1 truncate">{label}</span>
             {showBadge && (
-              <Badge className="h-5 min-w-5 justify-center rounded-full px-1.5 text-[10px]">
+              <Badge className="h-5 min-w-5 justify-center rounded-full bg-sidebar-foreground px-1.5 text-[10px] text-sidebar">
                 {newLeadsCount > 99 ? "99+" : newLeadsCount}
               </Badge>
             )}

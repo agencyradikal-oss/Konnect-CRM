@@ -1,9 +1,8 @@
 /**
- * Neon a veces inyecta DATABASE_URL (pooler) sin DATABASE_URL_UNPOOLED.
- * Prisma migrate necesita directUrl; si falta, reutilizamos la pooled.
+ * Neon a veces inyecta DATABASE_URL (pooler) con DATABASE_URL_UNPOOLED vacío.
+ * Prisma exige directUrl no vacío; si falta, reutilizamos la pooled.
+ * Solo mutamos process.env (no escribimos .env en Vercel).
  */
-import fs from "node:fs";
-
 const pooled = process.env.DATABASE_URL?.trim() || "";
 const unpooled = process.env.DATABASE_URL_UNPOOLED?.trim() || "";
 
@@ -14,7 +13,6 @@ if (!pooled) {
 
 if (!unpooled) {
   process.env.DATABASE_URL_UNPOOLED = pooled;
-  fs.appendFileSync(".env", `\nDATABASE_URL_UNPOOLED="${pooled}"\n`);
   console.log("[ensure-unpooled] DATABASE_URL_UNPOOLED ← DATABASE_URL (fallback)");
 } else {
   console.log("[ensure-unpooled] DATABASE_URL_UNPOOLED ok");
