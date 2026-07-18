@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { LeadStatus, DealStage, LeadSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { sanitizeUserText } from "@/lib/sanitize";
 
 function revalidateCrm(...extra: string[]) {
   revalidatePath("/app", "layout");
@@ -138,7 +139,10 @@ export async function updateDeal(input: unknown) {
     data: {
       ...(data.title !== undefined && { title: data.title }),
       ...(value !== undefined && { value }),
-      ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.notes !== undefined && {
+        notes:
+          data.notes === null ? null : sanitizeUserText(String(data.notes), 5000),
+      }),
       ...(data.expectedClose !== undefined && {
         expectedClose: data.expectedClose
           ? new Date(data.expectedClose)
@@ -285,11 +289,11 @@ export async function upsertContact(input: unknown) {
     : [];
 
   const payload = {
-    name: data.name.trim(),
+    name: sanitizeUserText(data.name, 120),
     email: data.email?.trim() || null,
     phone: data.phone?.trim() || null,
-    company: data.company?.trim() || null,
-    notes: data.notes?.trim() || null,
+    company: data.company ? sanitizeUserText(data.company, 120) : null,
+    notes: data.notes ? sanitizeUserText(data.notes, 5000) : null,
     tags,
   };
 

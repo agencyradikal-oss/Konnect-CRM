@@ -8,14 +8,60 @@
     "quote": "Pedir cotización",
     "login": "Iniciar sesión",
     "signup": "Crear cuenta",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "dashboard": "Mi panel",
+    "directory": "Directorio",
+    "registerBusiness": "Registra tu negocio",
+    "pricing": "Precios",
+    "loading": "Cargando…",
+    "errorTitle": "Algo salió mal",
+    "errorBody": "Hubo un error inesperado. Puedes intentar de nuevo o volver al inicio.",
+    "retry": "Reintentar",
+    "home": "Ir al inicio",
+    "notFoundTitle": "Página no encontrada",
+    "notFoundBody": "Esta página no existe o ya no está disponible.",
+    "language": "Idioma"
+  },
+  "nav": {
+    "directory": "Directorio",
+    "pricing": "Precios",
+    "register": "Registra tu negocio"
+  },
+  "home": {
+    "title": "Encuentra negocios hispanos en <highlight>Atlanta</highlight>",
+    "subtitle": "Remodelación, restaurantes, salud, legal y más — con atención en tu idioma.",
+    "searchPlaceholder": "¿Qué buscas? Ej: countertops, tacos, abogado...",
+    "search": "Buscar",
+    "categories": "Categorías",
+    "featured": "Negocios destacados",
+    "viewAll": "Ver todos",
+    "ctaTitle": "¿Tienes un negocio?",
+    "ctaBody": "Publica tu perfil gratis y recibe leads directo en tu CRM: cada llamada, WhatsApp o formulario queda registrado automáticamente.",
+    "ctaButton": "Registra tu negocio gratis",
+    "dbError": "No pudimos cargar el directorio ahora. Intenta de nuevo en unos minutos."
   },
   "directory": {
-    "title": "Encuentra negocios hispanos en Atlanta",
-    "subtitle": "Directorio de empresas con atención en español",
-    "searchPlaceholder": "¿Qué buscas? Ej: countertops, tacos, abogado...",
-    "cityPlaceholder": "Ciudad",
+    "title": "Directorio de negocios",
+    "subtitle": "Busca negocios hispanos en Atlanta metro por nombre, categoría o ciudad.",
+    "found": "{count} negocio encontrado",
+    "found_plural": "{count} negocios encontrados",
+    "searchPlaceholder": "Buscar negocio o servicio...",
+    "cityPlaceholder": "Ciudad (ej. Norcross)",
     "noResults": "No encontramos negocios con esos filtros."
+  },
+  "pricing": {
+    "title": "Planes simples para tu negocio",
+    "subtitle": "Empieza gratis. Escala cuando el directorio y el CRM te traigan más clientes.",
+    "current": "Plan actual",
+    "ctaFree": "Empezar gratis",
+    "ctaPro": "Elegir Pro",
+    "ctaPremium": "Elegir Premium",
+    "perMonth": "/mes",
+    "faqTitle": "Preguntas frecuentes",
+    "faq1q": "¿Puedo cancelar cuando quiera?",
+    "faq1a": "Sí. Gestionas tu suscripción en el portal de Stripe desde tu panel.",
+    "faq2q": "¿Los leads se pierden en Free?",
+    "faq2a": "No. Todos los leads se guardan; en Free solo ves los primeros 20 del mes hasta que actualices."
   },
   "crm": {
     "dashboard": "Dashboard",
@@ -23,7 +69,12 @@
     "contacts": "Contactos",
     "deals": "Deals",
     "tasks": "Tareas",
+    "analytics": "Analytics",
     "profile": "Perfil público",
     "plan": "Plan y facturación"
+  },
+  "footer": {
+    "rights": "© {year} Konnect™ · KMD Agency",
+    "location": "Atlanta metro, Georgia"
   }
 }

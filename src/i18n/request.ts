@@ -1,11 +1,19 @@
+import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 
-// Español primero; estructura lista para "en" (mercado Atlanta metro).
 export const locales = ["es", "en"] as const;
-export const defaultLocale = "es";
+export type AppLocale = (typeof locales)[number];
+export const defaultLocale: AppLocale = "es";
+export const LOCALE_COOKIE = "NEXT_LOCALE";
+
+export function isLocale(value: string | undefined | null): value is AppLocale {
+  return !!value && (locales as readonly string[]).includes(value);
+}
 
 export default getRequestConfig(async () => {
-  const locale = defaultLocale;
+  const jar = await cookies();
+  const raw = jar.get(LOCALE_COOKIE)?.value;
+  const locale: AppLocale = isLocale(raw) ? raw : defaultLocale;
 
   return {
     locale,

@@ -5,6 +5,7 @@ import { LeadSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertLeadFormRateLimit } from "@/lib/rate-limit";
 import { sendNewLeadEmail } from "@/lib/email";
+import { sanitizeUserText } from "@/lib/sanitize";
 
 /**
  * El Puente: toda interacción del perfil público se registra
@@ -76,10 +77,12 @@ export async function createLeadFromDirectory(
   const lead = await prisma.lead.create({
     data: {
       businessId: business.id,
-      name: parsed.data.name.trim(),
+      name: sanitizeUserText(parsed.data.name, 120),
       email: parsed.data.email?.trim() || null,
       phone: parsed.data.phone?.trim() || null,
-      message: parsed.data.message?.trim() || null,
+      message: parsed.data.message
+        ? sanitizeUserText(parsed.data.message, 2000)
+        : null,
       source: leadSource,
       status: "NEW",
     },

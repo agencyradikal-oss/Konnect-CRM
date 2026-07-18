@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Globe, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { getAppBaseUrl } from "@/lib/app-url";
 import { ContactForm } from "@/components/directory/contact-form";
 import { ClickActions } from "@/components/directory/click-actions";
 import { ProfileViewTracker } from "@/components/directory/profile-view-tracker";
+import { ReviewForm } from "@/components/directory/review-form";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +44,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description:
       business.description?.slice(0, 155) ??
       `${business.name}: ${business.category.nameEs} en ${business.city}, Georgia.`,
+    alternates: { canonical: `/negocio/${business.slug}` },
     openGraph: {
       title: business.name,
       description: business.description?.slice(0, 155),
       type: "website",
+      ...(business.coverUrl || business.logoUrl
+        ? { images: [{ url: business.coverUrl || business.logoUrl! }] }
+        : {}),
     },
   };
 }
@@ -173,19 +179,23 @@ export default async function NegocioPage({ params }: Props) {
               <h2 className="text-xl font-semibold">Galería</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {business.gallery.map((url) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <div
                     key={url}
-                    src={url}
-                    alt=""
-                    className="aspect-square w-full rounded-lg border object-cover"
-                  />
+                    className="relative aspect-square overflow-hidden rounded-lg border"
+                  >
+                    <Image
+                      src={url}
+                      alt={`${business.name} — galería`}
+                      fill
+                      sizes="(max-width:640px) 50vw, 200px"
+                      className="object-cover"
+                    />
+                  </div>
                 ))}
               </div>
             </section>
           )}
 
-          {/* Reseñas */}
           <section>
             <h2 className="text-xl font-semibold">Reseñas</h2>
             {business.reviews.length === 0 ? (
@@ -214,6 +224,7 @@ export default async function NegocioPage({ params }: Props) {
                 ))}
               </div>
             )}
+            <ReviewForm businessSlug={business.slug} />
           </section>
         </div>
 

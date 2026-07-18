@@ -8,14 +8,60 @@
     "quote": "Request a quote",
     "login": "Log in",
     "signup": "Sign up",
-    "logout": "Log out"
+    "logout": "Log out",
+    "dashboard": "My dashboard",
+    "directory": "Directory",
+    "registerBusiness": "List your business",
+    "pricing": "Pricing",
+    "loading": "Loading…",
+    "errorTitle": "Something went wrong",
+    "errorBody": "An unexpected error occurred. You can try again or go back home.",
+    "retry": "Try again",
+    "home": "Go home",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page doesn't exist or is no longer available.",
+    "language": "Language"
+  },
+  "nav": {
+    "directory": "Directory",
+    "pricing": "Pricing",
+    "register": "List your business"
+  },
+  "home": {
+    "title": "Find Hispanic businesses in <highlight>Atlanta</highlight>",
+    "subtitle": "Remodeling, restaurants, health, legal and more — service in your language.",
+    "searchPlaceholder": "What are you looking for? E.g.: countertops, tacos, lawyer...",
+    "search": "Search",
+    "categories": "Categories",
+    "featured": "Featured businesses",
+    "viewAll": "View all",
+    "ctaTitle": "Own a business?",
+    "ctaBody": "Publish your profile for free and get leads in your CRM — every call, WhatsApp, or form is tracked automatically.",
+    "ctaButton": "List your business for free",
+    "dbError": "We couldn't load the directory right now. Please try again in a few minutes."
   },
   "directory": {
-    "title": "Find Hispanic businesses in Atlanta",
-    "subtitle": "Business directory with service in Spanish",
-    "searchPlaceholder": "What are you looking for? E.g.: countertops, tacos, lawyer...",
-    "cityPlaceholder": "City",
+    "title": "Business directory",
+    "subtitle": "Search Hispanic businesses in Atlanta metro by name, category, or city.",
+    "found": "{count} business found",
+    "found_plural": "{count} businesses found",
+    "searchPlaceholder": "Search business or service...",
+    "cityPlaceholder": "City (e.g. Norcross)",
     "noResults": "No businesses match those filters."
+  },
+  "pricing": {
+    "title": "Simple plans for your business",
+    "subtitle": "Start free. Upgrade when the directory and CRM bring you more customers.",
+    "current": "Current plan",
+    "ctaFree": "Start free",
+    "ctaPro": "Choose Pro",
+    "ctaPremium": "Choose Premium",
+    "perMonth": "/mo",
+    "faqTitle": "FAQ",
+    "faq1q": "Can I cancel anytime?",
+    "faq1a": "Yes. Manage your subscription in the Stripe portal from your dashboard.",
+    "faq2q": "Do Free plan leads get lost?",
+    "faq2a": "No. Every lead is saved; Free only unlocks the first 20 of the month until you upgrade."
   },
   "crm": {
     "dashboard": "Dashboard",
@@ -23,7 +69,12 @@
     "contacts": "Contacts",
     "deals": "Deals",
     "tasks": "Tasks",
+    "analytics": "Analytics",
     "profile": "Public profile",
     "plan": "Plan & billing"
+  },
+  "footer": {
+    "rights": "© {year} Konnect™ · KMD Agency",
+    "location": "Atlanta metro, Georgia"
   }
 }
