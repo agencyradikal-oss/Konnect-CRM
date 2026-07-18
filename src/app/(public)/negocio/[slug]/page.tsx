@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { ContactForm } from "@/components/directory/contact-form";
 import { ClickActions } from "@/components/directory/click-actions";
+import { ProfileViewTracker } from "@/components/directory/profile-view-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,7 @@ export default async function NegocioPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <ProfileViewTracker slug={business.slug} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -113,6 +115,11 @@ export default async function NegocioPage({ params }: Props) {
             <Link href={`/categoria/${business.category.slug}`}>
               <Badge variant="secondary">{business.category.nameEs}</Badge>
             </Link>
+            {business.featured && (
+              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                Destacado
+              </Badge>
+            )}
             {avgRating && (
               <span className="flex items-center gap-1 text-sm">
                 <Star className="size-4 fill-amber-400 text-amber-400" />
@@ -158,6 +165,23 @@ export default async function NegocioPage({ params }: Props) {
               <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground">
                 {business.description}
               </p>
+            </section>
+          )}
+
+          {business.gallery.length > 0 && (
+            <section>
+              <h2 className="text-xl font-semibold">Galería</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {business.gallery.map((url) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={url}
+                    src={url}
+                    alt=""
+                    className="aspect-square w-full rounded-lg border object-cover"
+                  />
+                ))}
+              </div>
             </section>
           )}
 

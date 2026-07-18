@@ -10,6 +10,7 @@ import {
   CheckSquare,
   Store,
   CreditCard,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ const items = [
   { href: "/app/contactos", label: "Contactos", icon: Users },
   { href: "/app/deals", label: "Deals", icon: Handshake },
   { href: "/app/tareas", label: "Tareas", icon: CheckSquare },
+  { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/app/perfil", label: "Mi Perfil Público", icon: Store },
   { href: "/app/plan", label: "Plan", icon: CreditCard },
 ] as const;

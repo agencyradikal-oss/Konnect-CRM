@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Plus, Search, Upload } from "lucide-react";
@@ -66,7 +67,13 @@ type CsvPreview = {
   rows: Record<string, string>[];
 };
 
-export function ContactsManager({ contacts }: { contacts: ContactRow[] }) {
+export function ContactsManager({
+  contacts,
+  canImportCsv = false,
+}: {
+  contacts: ContactRow[];
+  canImportCsv?: boolean;
+}) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<ContactRow | null>(null);
   const [open, setOpen] = useState(false);
@@ -168,6 +175,7 @@ export function ContactsManager({ contacts }: { contacts: ContactRow[] }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canImportCsv ? (
           <Dialog open={importOpen} onOpenChange={setImportOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -267,6 +275,13 @@ export function ContactsManager({ contacts }: { contacts: ContactRow[] }) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          ) : (
+            <Button asChild variant="outline">
+              <Link href="/app/plan">
+                <Upload className="size-4" /> Import CSV (Pro+)
+              </Link>
+            </Button>
+          )}
 
           <Button type="button" onClick={() => openContact(null)}>
             <Plus className="size-4" /> Nuevo

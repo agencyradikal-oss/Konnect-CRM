@@ -17,6 +17,7 @@ import {
 import { updateBusinessProfile } from "@/actions/business";
 import { HoursEditor, defaultHours, type WeekHours } from "@/components/business/hours-editor";
 import { ImageUpload } from "@/components/business/image-upload";
+import { GalleryManager } from "@/components/crm/gallery-manager";
 
 type CategoryOption = { id: string; nameEs: string };
 
@@ -34,15 +35,18 @@ type ProfileInitial = {
   zip: string;
   logoUrl: string | null;
   coverUrl: string | null;
+  gallery: string[];
   hours: WeekHours;
 };
 
 export function ProfileForm({
   initial,
   categories,
+  galleryMax,
 }: {
   initial: ProfileInitial;
   categories: CategoryOption[];
+  galleryMax: number;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -230,6 +234,7 @@ export function ProfileForm({
             aspect="wide"
           />
         </div>
+        <GalleryManager gallery={initial.gallery} maxPhotos={galleryMax} />
         <HoursEditor value={hours} onChange={setHours} />
       </section>
 

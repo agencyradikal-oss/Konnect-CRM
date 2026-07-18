@@ -1,11 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { getPlanLimits } from "@/lib/plans";
 import { ProfileForm } from "@/components/crm/profile-form";
 import { defaultHours, type WeekHours } from "@/components/business/hours-editor";
 
 export default async function PerfilPage() {
-  const { businessId } = await getCurrentBusiness();
+  const { businessId, business: tenant } = await getCurrentBusiness();
+  const limits = getPlanLimits(tenant.plan);
 
   const [business, categories] = await Promise.all([
     prisma.business.findUniqueOrThrow({ where: { id: businessId } }),
@@ -41,6 +43,7 @@ export default async function PerfilPage() {
         <CardContent>
           <ProfileForm
             categories={categories}
+            galleryMax={limits.galleryPhotos}
             initial={{
               name: business.name,
               categoryId: business.categoryId,
@@ -55,6 +58,7 @@ export default async function PerfilPage() {
               zip: business.zip ?? "",
               logoUrl: business.logoUrl,
               coverUrl: business.coverUrl,
+              gallery: business.gallery,
               hours,
             }}
           />

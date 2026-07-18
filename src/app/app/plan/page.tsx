@@ -1,69 +1,79 @@
 import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { PLAN_CATALOG } from "@/lib/plans";
+import { isStripeConfigured } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
+import {
+  ManageBillingButton,
+  UpgradeButton,
+} from "@/components/crm/plan-actions";
 
-const plans = [
-  {
-    id: "FREE",
-    name: "Free",
-    price: "$0",
-    features: [
-      "Perfil en el directorio",
-      "Hasta 20 leads al mes",
-      "CRM básico (leads y contactos)",
-    ],
-  },
-  {
-    id: "PRO",
-    name: "Pro",
-    price: "$29/mes",
-    features: [
-      "Todo lo de Free",
-      "Leads ilimitados",
-      "Pipeline de deals y tareas",
-      "Badge de verificado",
-    ],
-  },
-  {
-    id: "PREMIUM",
-    name: "Premium",
-    price: "$79/mes",
-    features: [
-      "Todo lo de Pro",
-      "Posición destacada en el directorio",
-      "Galería de fotos ampliada",
-      "Soporte prioritario",
-    ],
-  },
-];
-
-export default async function PlanPage() {
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ success?: string; canceled?: string }>;
+}) {
   const { businessId } = await getCurrentBusiness();
+  const params = await searchParams;
   const business = await prisma.business.findUniqueOrThrow({
     where: { id: businessId },
-    select: { plan: true },
+    select: {
+      plan: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
+    },
   });
+
+  const stripeReady = isStripeConfigured();
+  const rank = { FREE: 0, PRO: 1, PREMIUM: 2 } as const;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Plan y facturación</h1>
-        <p className="text-muted-foreground">
-          Tu plan actual: <Badge className="ml-1">{business.plan}</Badge>
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Plan y facturación</h1>
+          <p className="text-muted-foreground">
+            Tu plan actual:{" "}
+            <Badge className="ml-1">{business.plan}</Badge>
+          </p>
+        </div>
+        {business.stripeCustomerId && <ManageBillingButton />}
       </div>
 
+      {params.success === "1" && (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          ¡Pago recibido! Tu plan se actualizará en unos segundos (webhook de
+          Stripe). Recarga si aún ves el plan anterior.
+        </div>
+      )}
+      {params.canceled === "1" && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Checkout cancelado. Puedes intentar de nuevo cuando quieras.
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
-        {plans.map((plan) => {
+        {PLAN_CATALOG.map((plan) => {
           const isCurrent = plan.id === business.plan;
+          const isUpgrade = rank[plan.id] > rank[business.plan];
+          const isDowngrade = rank[plan.id] < rank[business.plan];
+
           return (
             <Card
               key={plan.id}
-              className={cn(isCurrent && "border-primary ring-1 ring-primary")}
+              className={cn(
+                "flex flex-col shadow-sm",
+                isCurrent && "border-primary ring-1 ring-primary",
+              )}
             >
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -71,11 +81,12 @@ export default async function PlanPage() {
                   {isCurrent && <Badge>Actual</Badge>}
                 </CardTitle>
                 <CardDescription className="text-2xl font-bold text-foreground">
-                  {plan.price}
+                  {plan.priceLabel}
                 </CardDescription>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <ul className="space-y-2 text-sm">
+              <CardContent className="flex flex-1 flex-col gap-4">
+                <ul className="flex-1 space-y-2 text-sm">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <Check className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -83,18 +94,51 @@ export default async function PlanPage() {
                     </li>
                   ))}
                 </ul>
-                <Button disabled={isCurrent} variant={isCurrent ? "outline" : "default"}>
-                  {isCurrent ? "Plan actual" : "Cambiar a este plan"}
-                </Button>
+
+                {plan.id === "FREE" ? (
+                  isCurrent ? (
+                    <Badge variant="outline" className="justify-center py-2">
+                      Plan actual
+                    </Badge>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground">
+                      Cancela tu suscripción en el portal para volver a Free.
+                    </p>
+                  )
+                ) : (
+                  <UpgradeButton
+                    plan={plan.id}
+                    disabled={
+                      !stripeReady ||
+                      isCurrent ||
+                      (isDowngrade && Boolean(business.stripeCustomerId))
+                    }
+                    label={
+                      !stripeReady
+                        ? "Stripe no configurado"
+                        : isCurrent
+                          ? "Plan actual"
+                          : isUpgrade
+                            ? `Actualizar a ${plan.name}`
+                            : "Usar portal para cambiar"
+                    }
+                  />
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        El checkout con Stripe se habilitará al configurar STRIPE_SECRET_KEY.
-      </p>
+      {!stripeReady && (
+        <p className="text-sm text-muted-foreground">
+          Configura <code>STRIPE_SECRET_KEY</code>,{" "}
+          <code>STRIPE_PRICE_PRO</code>, <code>STRIPE_PRICE_PREMIUM</code> y{" "}
+          <code>STRIPE_WEBHOOK_SECRET</code>. Ejecuta{" "}
+          <code>node scripts/create-stripe-products.mjs</code> para crear los
+          precios.
+        </p>
+      )}
     </div>
   );
 }

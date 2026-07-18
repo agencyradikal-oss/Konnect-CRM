@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { getPlanLimits } from "@/lib/plans";
 import { ContactsManager } from "@/components/crm/contacts-manager";
 
 export default async function ContactosPage({
@@ -7,8 +8,9 @@ export default async function ContactosPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { businessId } = await getCurrentBusiness();
+  const { businessId, business } = await getCurrentBusiness();
   await searchParams; // reserved for future server-side search
+  const canImportCsv = getPlanLimits(business.plan).csvImport;
 
   const contacts = await prisma.contact.findMany({
     where: { businessId },
@@ -24,6 +26,7 @@ export default async function ContactosPage({
 
   return (
     <ContactsManager
+      canImportCsv={canImportCsv}
       contacts={contacts.map((c) => ({
         id: c.id,
         name: c.name,

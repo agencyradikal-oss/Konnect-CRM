@@ -26,14 +26,20 @@ const CHART_COLORS = [
 
 export function LeadsWeeklyChart({
   data,
+  title = "Leads por semana",
+  subtitle = "Últimas 8 semanas",
+  seriesName = "Leads",
 }: {
   data: { week: string; leads: number }[];
+  title?: string;
+  subtitle?: string;
+  seriesName?: string;
 }) {
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Leads por semana</CardTitle>
-        <p className="text-sm text-muted-foreground">Últimas 8 semanas</p>
+        <CardTitle className="text-base">{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </CardHeader>
       <CardContent className="h-64 pt-2">
         <ResponsiveContainer width="100%" height="100%">
@@ -56,7 +62,7 @@ export function LeadsWeeklyChart({
             <Area
               type="monotone"
               dataKey="leads"
-              name="Leads"
+              name={seriesName}
               stroke="#31C9C0"
               fill="url(#leadsFill)"
               strokeWidth={2}

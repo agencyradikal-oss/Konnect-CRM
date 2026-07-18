@@ -324,7 +324,14 @@ const importSchema = z.object({
 
 /** Importa CSV: crea Contact + Lead source=IMPORT por fila. */
 export async function importContacts(input: unknown) {
-  const { businessId } = await getCurrentBusiness();
+  const { businessId, business } = await getCurrentBusiness();
+  const { getPlanLimits } = await import("@/lib/plans");
+  if (!getPlanLimits(business.plan).csvImport) {
+    return {
+      ok: false as const,
+      error: "Importar CSV requiere plan Pro o Premium.",
+    };
+  }
   const data = importSchema.parse(input);
 
   let created = 0;

@@ -71,11 +71,13 @@ model Business {
   tasks                Task[]
   activities           Activity[]
   reviews              Review[]
+  pageViews            PageView[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
   @@index([city, status])
   @@index([plan, featured])
+  @@index([stripeCustomerId])
 }
 
 enum Plan {
@@ -243,4 +245,16 @@ model LeadRateLimit {
   createdAt DateTime @default(now())
 
   @@index([ipHash, createdAt])
+}
+
+/// Vistas del perfil público (analytics Premium).
+model PageView {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  slug       String
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([slug, createdAt])
 }

@@ -278,3 +278,68 @@ export async function updateBusinessProfile(formData: FormData) {
 
   return { ok: true as const };
 }
+
+/** Sube una foto a la galería respetando el límite del plan. */
+export async function addGalleryImage(formData: FormData) {
+  const { businessId } = await requireBusinessSession();
+  const { getPlanLimits } = await import("@/lib/plans");
+
+  const business = await prisma.business.findUniqueOrThrow({
+    where: { id: businessId },
+    select: { slug: true, plan: true, gallery: true },
+  });
+
+  const limits = getPlanLimits(business.plan);
+  if (business.gallery.length >= limits.galleryPhotos) {
+    return {
+      ok: false as const,
+      error: `Tu plan permite hasta ${limits.galleryPhotos} foto${limits.galleryPhotos === 1 ? "" : "s"} en la galería. Actualiza tu plan para agregar más.`,
+    };
+  }
+
+  try {
+    const url = await uploadImage(
+      formData.get("image") as File | null,
+      `businesses/${business.slug}/gallery`,
+    );
+    if (!url) {
+      return {
+        ok: false as const,
+        error: "No se pudo subir la imagen. Verifica BLOB_READ_WRITE_TOKEN.",
+      };
+    }
+
+    await prisma.business.update({
+      where: { id: businessId },
+      data: { gallery: { push: url } },
+    });
+
+    revalidatePath("/app/perfil");
+    revalidatePath(`/negocio/${business.slug}`);
+    return { ok: true as const, url };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Error subiendo imagen.",
+    };
+  }
+}
+
+export async function removeGalleryImage(input: unknown) {
+  const { businessId } = await requireBusinessSession();
+  const { url } = z.object({ url: z.string().url() }).parse(input);
+
+  const business = await prisma.business.findUniqueOrThrow({
+    where: { id: businessId },
+    select: { slug: true, gallery: true },
+  });
+
+  await prisma.business.update({
+    where: { id: businessId },
+    data: { gallery: business.gallery.filter((u) => u !== url) },
+  });
+
+  revalidatePath("/app/perfil");
+  revalidatePath(`/negocio/${business.slug}`);
+  return { ok: true as const };
+}
