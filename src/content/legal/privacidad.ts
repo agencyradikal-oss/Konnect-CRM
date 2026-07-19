@@ -62,14 +62,14 @@ export const privacidadEs: LegalDoc = {
       id: "retencion",
       title: "5. Conservación",
       paragraphs: [
-        `Conservamos datos mientras la cuenta esté activa o sea necesario para el Servicio, disputas, seguridad y requisitos legales. Puedes solicitar eliminación de cuenta escribiendo a ${LEGAL_CONTACT}; algunos registros pueden retenerse de forma limitada por obligación legal o backup.`,
+        `Conservamos datos mientras la cuenta esté activa o sea necesario para el Servicio, disputas, seguridad y requisitos legales. Puedes solicitar eliminación de cuenta según las instrucciones en ${SITE_URL}/eliminar-datos; algunos registros pueden retenerse de forma limitada por obligación legal o backup.`,
       ],
     },
     {
       id: "derechos",
       title: "6. Tus derechos",
       paragraphs: [
-        `Según tu jurisdicción (p. ej. residentes de ciertos estados de EE. UU.), puedes solicitar acceso, corrección, eliminación o exportar ciertos datos. Contáctanos en ${LEGAL_CONTACT}. Verificaremos la solicitud de forma razonable.`,
+        `Según tu jurisdicción (p. ej. residentes de ciertos estados de EE. UU.), puedes solicitar acceso, corrección, eliminación o exportar ciertos datos. Para eliminar tu cuenta y datos personales, sigue ${SITE_URL}/eliminar-datos o escribe a ${LEGAL_CONTACT}. Verificaremos la solicitud de forma razonable.`,
         "Los visitantes que dejaron un lead en un negocio deben contactar también a ese negocio para solicitudes sobre el tratamiento que el negocio realiza.",
       ],
     },
@@ -159,14 +159,14 @@ export const privacidadEn: LegalDoc = {
       id: "retencion",
       title: "5. Retention",
       paragraphs: [
-        `We keep data while the account is active or as needed for the Service, disputes, security, and legal requirements. You may request account deletion at ${LEGAL_CONTACT}; limited records may remain for legal or backup purposes.`,
+        `We keep data while the account is active or as needed for the Service, disputes, security, and legal requirements. You may request account deletion using the instructions at ${SITE_URL}/eliminar-datos; limited records may remain for legal or backup purposes.`,
       ],
     },
     {
       id: "derechos",
       title: "6. Your rights",
       paragraphs: [
-        `Depending on your jurisdiction, you may request access, correction, deletion, or export of certain data. Contact ${LEGAL_CONTACT}. We will verify requests reasonably.`,
+        `Depending on your jurisdiction, you may request access, correction, deletion, or export of certain data. To delete your account and personal data, follow ${SITE_URL}/eliminar-datos or email ${LEGAL_CONTACT}. We will verify requests reasonably.`,
         "Visitors who submitted a lead should also contact that business for requests about the business’s own processing.",
       ],
     },

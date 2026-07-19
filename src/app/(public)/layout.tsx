@@ -17,6 +17,7 @@ export default async function PublicLayout({
     { href: "/developers", label: t("developers") },
     { href: "/terminos", label: t("terms") },
     { href: "/privacidad", label: t("privacy") },
+    { href: "/eliminar-datos", label: t("deleteData") },
   ];
 
   return (
