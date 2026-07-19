@@ -1,115 +1,58 @@
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
+import type { Role } from "@prisma/client";
+import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { authConfig } from "@/lib/auth.config";
+import { upsertUserFromClerk } from "@/lib/clerk-sync";
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+export type SessionUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  businessId: string | null;
+};
 
-export const googleEnabled =
-  !!process.env.AUTH_GOOGLE_ID && !!process.env.AUTH_GOOGLE_SECRET;
+export type AppSession = {
+  user: SessionUser;
+};
 
-export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
-  ...authConfig,
-  providers: [
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Contraseña", type: "password" },
-      },
-      async authorize(credentials) {
-        const parsed = credentialsSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+/**
+ * Sesión Konnect (Prisma) a partir de la sesión Clerk.
+ * Compatible con el shape anterior de Auth.js: `{ user: { id, email, name, role, businessId } }`.
+ */
+export async function auth(): Promise<AppSession | null> {
+  const { userId } = await clerkAuth();
+  if (!userId) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
-        });
-        if (!user?.passwordHash || user.disabled) return null;
+  let dbUser = await prisma.user.findUnique({
+    where: { clerkUserId: userId },
+  });
 
-        const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!valid) return null;
+  if (!dbUser) {
+    const clerkUser = await currentUser();
+    if (!clerkUser) return null;
+    dbUser = await upsertUserFromClerk(
+      clerkUser as unknown as Record<string, unknown>,
+      { sendWelcome: true },
+    );
+  }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          businessId: user.businessId,
-        };
-      },
-    }),
-    ...(googleEnabled ? [Google] : []),
-  ],
-  callbacks: {
-    ...authConfig.callbacks,
-    async signIn({ user, account }) {
-      if (account?.provider === "google" && user.email) {
-        const existing = await prisma.user.findUnique({
-          where: { email: user.email },
-          select: { disabled: true },
-        });
-        if (existing?.disabled) return false;
+  if (dbUser.disabled) return null;
 
-        await prisma.user.upsert({
-          where: { email: user.email },
-          update: { name: user.name ?? undefined },
-          create: {
-            email: user.email,
-            name: user.name,
-            role: "BUSINESS_OWNER",
-          },
-        });
-      }
-      return true;
+  return {
+    user: {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      role: dbUser.role,
+      businessId: dbUser.businessId,
     },
-    async jwt({ token, user, account, trigger, session }) {
-      if (user) {
-        if (account?.provider === "google" && user.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: user.email },
-          });
-          if (dbUser) {
-            if (dbUser.disabled) {
-              token.disabled = true;
-              return token;
-            }
-            token.sub = dbUser.id;
-            token.role = dbUser.role;
-            token.businessId = dbUser.businessId;
-            token.disabled = false;
-          }
-        } else {
-          token.role = user.role;
-          token.businessId = user.businessId;
-          token.disabled = false;
-        }
-      }
-      if (trigger === "update" && session?.user?.businessId) {
-        token.businessId = session.user.businessId;
-      }
-      // Sincroniza tenant / bloqueo desde DB
-      if (token.sub) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { businessId: true, role: true, disabled: true },
-        });
-        if (!dbUser || dbUser.disabled) {
-          token.disabled = true;
-          return token;
-        }
-        token.role = dbUser.role;
-        token.businessId = dbUser.businessId;
-        token.disabled = false;
-      }
-      return token;
-    },
-  },
-});
+  };
+}
+
+/** No-op: la sesión siempre lee role/businessId desde Prisma (compat. Auth.js). */
+export async function unstable_update(_data?: unknown) {
+  return null;
+}
 
 /** Sesión con businessId garantizado — para Server Actions del CRM. */
 export async function requireBusinessSession() {

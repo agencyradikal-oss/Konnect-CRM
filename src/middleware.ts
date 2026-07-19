@@ -1,42 +1,27 @@
-import NextAuth from "next-auth";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { authConfig } from "@/lib/auth.config";
 
-const { auth } = NextAuth(authConfig);
+const isAppRoute = createRouteMatcher(["/app(.*)"]);
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-export default auth((req) => {
-  const { nextUrl } = req;
-  const user = req.auth?.user;
-  // JWT invalidado (usuario desactivado) → tratar como no autenticado
-  const authed = Boolean(user?.id);
-
-  // /app/* requiere sesión con businessId
-  if (nextUrl.pathname.startsWith("/app")) {
-    if (!authed || !user) {
-      const login = new URL("/login", nextUrl);
-      login.searchParams.set("callbackUrl", nextUrl.pathname);
-      return NextResponse.redirect(login);
-    }
-    if (!user.businessId && user.role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/registrar-empresa", nextUrl));
+/**
+ * Clerk autentica; role/businessId se validan en layouts + Server Actions (Prisma).
+ * Claims de publicMetadata (si están en el JWT) solo aceleran redirects.
+ */
+export default clerkMiddleware(async (auth, req) => {
+  if (isAppRoute(req) || isAdminRoute(req)) {
+    const session = await auth();
+    if (!session.userId) {
+      return session.redirectToSignIn({ returnBackUrl: req.url });
     }
   }
-
-  // /admin/* requiere SUPER_ADMIN
-  if (nextUrl.pathname.startsWith("/admin")) {
-    if (!authed || !user) {
-      const login = new URL("/login", nextUrl);
-      login.searchParams.set("callbackUrl", nextUrl.pathname);
-      return NextResponse.redirect(login);
-    }
-    if (user.role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/", nextUrl));
-    }
-  }
-
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/app/:path*", "/admin/:path*"],
+  matcher: [
+    // Incluye rutas de la app + handshake de Clerk
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

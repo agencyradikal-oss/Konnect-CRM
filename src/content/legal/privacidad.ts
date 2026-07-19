@@ -53,7 +53,7 @@ export const privacidadEs: LegalDoc = {
       ],
       bullets: [
         "Hosting e infraestructura (p. ej. Vercel), base de datos (Neon/PostgreSQL), archivos (Vercel Blob).",
-        "Auth y email (Auth.js / proveedores OAuth opcionales, Resend).",
+        "Auth y email (Clerk OAuth / email-password, Resend).",
         "Pagos (Stripe).",
         "Cuando un visitante contacta un negocio, ese negocio recibe el lead y actúa como responsable independiente de ese tratamiento comercial.",
       ],
@@ -150,7 +150,7 @@ export const privacidadEn: LegalDoc = {
       ],
       bullets: [
         "Hosting (e.g. Vercel), database (Neon/PostgreSQL), files (Vercel Blob).",
-        "Auth and email (Auth.js / optional OAuth, Resend).",
+        "Auth and email (Clerk OAuth / email-password, Resend).",
         "Payments (Stripe).",
         "When a visitor contacts a business, that business receives the lead and is an independent controller for that commercial relationship.",
       ],

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { requireSuperAdmin, signOut } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { BrandWordmark } from "@/components/brand/brand-mark";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export default async function AdminLayout({
   children,
@@ -25,16 +26,7 @@ export default async function AdminLayout({
             <Button asChild variant="ghost" size="sm">
               <Link href="/">Ver sitio</Link>
             </Button>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-            >
-              <Button variant="outline" size="sm" type="submit">
-                Cerrar sesión
-              </Button>
-            </form>
+            <SignOutButton variant="outline" size="sm" />
           </div>
         </div>
       </header>

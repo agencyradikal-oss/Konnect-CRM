@@ -102,10 +102,20 @@ export default async function HowItWorksPage() {
       </section>
 
       <section className="border-t bg-sidebar text-sidebar-foreground">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-14 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 md:flex-row md:items-end md:justify-between">
           <div className="max-w-xl">
             <h2 className="text-2xl font-bold">{t.plansTitle}</h2>
             <p className="mt-2 text-sidebar-foreground/80">{t.plansBody}</p>
+            <p className="mt-3 text-sm text-sidebar-foreground/70">
+              {t.integrationsNote}{" "}
+              <Link href="/developers" className="underline">
+                Developers
+              </Link>
+              {" · "}
+              <Link href="/app/integraciones" className="underline">
+                /app/integraciones
+              </Link>
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">

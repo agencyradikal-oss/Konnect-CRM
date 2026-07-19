@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { assertLeadFormRateLimit } from "@/lib/rate-limit";
 import { sendNewLeadEmail } from "@/lib/email";
 import { sanitizeUserText } from "@/lib/sanitize";
+import { dispatchLeadCreatedWebhook } from "@/lib/outbound-webhook";
 
 /**
  * El Puente: toda interacción del perfil público se registra
@@ -55,6 +56,7 @@ export async function createLeadFromDirectory(
     where: { slug },
     select: {
       id: true,
+      slug: true,
       status: true,
       name: true,
       email: true,
@@ -103,6 +105,12 @@ export async function createLeadFromDirectory(
     }).catch((err) => console.error("[bridge] email lead:", err));
   }
 
+  void dispatchLeadCreatedWebhook({
+    businessId: business.id,
+    businessSlug: business.slug,
+    lead,
+  }).catch((err) => console.error("[bridge] webhook lead:", err));
+
   return { ok: true as const, leadId: lead.id };
 }
 
@@ -120,13 +128,13 @@ export async function trackContactClick(
 
   const business = await prisma.business.findUnique({
     where: { slug },
-    select: { id: true, status: true },
+    select: { id: true, slug: true, status: true },
   });
   if (!business || business.status !== "ACTIVE") {
     return { ok: false as const };
   }
 
-  await prisma.lead.create({
+  const lead = await prisma.lead.create({
     data: {
       businessId: business.id,
       name: "Visitante del directorio",
@@ -135,6 +143,12 @@ export async function trackContactClick(
       message: null,
     },
   });
+
+  void dispatchLeadCreatedWebhook({
+    businessId: business.id,
+    businessSlug: business.slug,
+    lead,
+  }).catch((err) => console.error("[bridge] webhook click:", err));
 
   return { ok: true as const };
 }

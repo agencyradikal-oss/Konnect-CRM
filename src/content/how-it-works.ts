@@ -65,6 +65,8 @@ export const howItWorksEs = {
   plansTitle: "Planes que crecen contigo",
   plansBody:
     "Empieza en Free. Pro desbloquea CRM ilimitado e import CSV. Premium añade destacado en el directorio y analytics de visitas al perfil.",
+  integrationsNote:
+    "¿Usas Square o QuickBooks? En /app/integraciones conectas un webhook lead.created hacia Zapier/Make. Stripe en Konnect es solo para tu plan de suscripción.",
 };
 
 export const howItWorksEn = {
@@ -123,4 +125,6 @@ export const howItWorksEn = {
   plansTitle: "Plans that scale with you",
   plansBody:
     "Start on Free. Pro unlocks unlimited CRM and CSV import. Premium adds featured directory placement and profile-view analytics.",
+  integrationsNote:
+    "Using Square or QuickBooks? In /app/integraciones connect a lead.created webhook to Zapier/Make. Stripe on Konnect is only for your subscription plan.",
 };

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SidebarNav } from "@/components/crm/sidebar-nav";
 import { MobileNav } from "@/components/crm/mobile-nav";
 import { LeadsBell } from "@/components/crm/leads-bell";
 import { BrandWordmark } from "@/components/brand/brand-mark";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export default async function CrmLayout({
   children,
@@ -60,11 +60,6 @@ export default async function CrmLayout({
     message: l.message,
   }));
 
-  const signOutAction = async () => {
-    "use server";
-    await signOut({ redirectTo: "/" });
-  };
-
   return (
     <div className="flex min-h-screen bg-muted/40">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
@@ -103,15 +98,10 @@ export default async function CrmLayout({
               </p>
             </div>
           </div>
-          <form action={signOutAction}>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="w-full justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <LogOut className="size-4" /> Cerrar sesión
-            </Button>
-          </form>
+          <SignOutButton
+            showIcon
+            className="w-full justify-start gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          />
         </div>
       </aside>
 

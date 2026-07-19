@@ -1,11 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
+import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/auth";
+import { syncClerkUserMetadata } from "@/lib/clerk-sync";
 import { sanitizeUserText } from "@/lib/sanitize";
 
 function revalidateAdminUsers() {
@@ -14,6 +15,18 @@ function revalidateAdminUsers() {
 }
 
 const roleSchema = z.nativeEnum(Role);
+
+async function syncClerkForUser(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.clerkUserId) return;
+  await syncClerkUserMetadata({
+    clerkUserId: user.clerkUserId,
+    konnectUserId: user.id,
+    role: user.role,
+    businessId: user.businessId,
+    disabled: user.disabled,
+  });
+}
 
 /** Actualiza rol de un usuario. No permite quitar el último SUPER_ADMIN activo. */
 export async function updateUserRole(input: unknown) {
@@ -44,6 +57,7 @@ export async function updateUserRole(input: unknown) {
     where: { id: data.userId },
     data: { role: data.role },
   });
+  await syncClerkForUser(data.userId);
 
   revalidateAdminUsers();
   return { ok: true as const };
@@ -71,12 +85,13 @@ export async function assignUserBusiness(input: unknown) {
     where: { id: data.userId },
     data: { businessId: data.businessId },
   });
+  await syncClerkForUser(data.userId);
 
   revalidateAdminUsers();
   return { ok: true as const };
 }
 
-/** Activa o desactiva el acceso (login). */
+/** Activa o desactiva el acceso (login) — ban en Clerk + flag Prisma. */
 export async function setUserDisabled(input: unknown) {
   const session = await requireSuperAdmin();
   const data = z
@@ -110,6 +125,16 @@ export async function setUserDisabled(input: unknown) {
     data: { disabled: data.disabled },
   });
 
+  if (target.clerkUserId) {
+    const client = await clerkClient();
+    if (data.disabled) {
+      await client.users.banUser(target.clerkUserId);
+    } else {
+      await client.users.unbanUser(target.clerkUserId);
+    }
+    await syncClerkForUser(data.userId);
+  }
+
   revalidateAdminUsers();
   return { ok: true as const };
 }
@@ -122,7 +147,7 @@ const createUserSchema = z.object({
   businessId: z.string().min(1).optional().nullable(),
 });
 
-/** Crea un usuario (staff/dueño/admin) desde el panel. */
+/** Crea usuario en Clerk + Prisma desde el panel. */
 export async function createAdminUser(input: unknown) {
   await requireSuperAdmin();
   const parsed = createUserSchema.safeParse(input);
@@ -133,10 +158,10 @@ export async function createAdminUser(input: unknown) {
     };
   }
   const data = parsed.data;
+  const email = data.email.toLowerCase().trim();
+  const name = sanitizeUserText(data.name, 120);
 
-  const existing = await prisma.user.findUnique({
-    where: { email: data.email.toLowerCase() },
-  });
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { ok: false as const, error: "Ese email ya está registrado." };
   }
@@ -159,14 +184,43 @@ export async function createAdminUser(input: unknown) {
     };
   }
 
-  await prisma.user.create({
+  const businessId =
+    data.role === "SUPER_ADMIN" ? null : data.businessId || null;
+
+  const client = await clerkClient();
+  let clerkUser;
+  try {
+    clerkUser = await client.users.createUser({
+      emailAddress: [email],
+      password: data.password,
+      firstName: name.split(" ")[0] || name,
+      lastName: name.split(" ").slice(1).join(" ") || undefined,
+      skipPasswordChecks: false,
+    });
+  } catch (err) {
+    console.error("[createAdminUser] Clerk:", err);
+    return {
+      ok: false as const,
+      error: "No se pudo crear el usuario en Clerk. Revisa el email/contraseña.",
+    };
+  }
+
+  const user = await prisma.user.create({
     data: {
-      name: sanitizeUserText(data.name, 120),
-      email: data.email.toLowerCase().trim(),
-      passwordHash: await bcrypt.hash(data.password, 10),
+      clerkUserId: clerkUser.id,
+      name,
+      email,
       role: data.role,
-      businessId: data.role === "SUPER_ADMIN" ? null : data.businessId || null,
+      businessId,
     },
+  });
+
+  await syncClerkUserMetadata({
+    clerkUserId: clerkUser.id,
+    konnectUserId: user.id,
+    role: user.role,
+    businessId: user.businessId,
+    disabled: false,
   });
 
   revalidateAdminUsers();
@@ -178,18 +232,32 @@ const passwordSchema = z.object({
   password: z.string().min(8).max(100),
 });
 
-/** Restablece la contraseña de un usuario (solo admin). */
+/** Restablece la contraseña en Clerk (solo admin). */
 export async function resetUserPassword(input: unknown) {
   await requireSuperAdmin();
   const data = passwordSchema.parse(input);
 
   const target = await prisma.user.findUnique({ where: { id: data.userId } });
   if (!target) return { ok: false as const, error: "Usuario no encontrado." };
+  if (!target.clerkUserId) {
+    return {
+      ok: false as const,
+      error: "Este usuario aún no está vinculado a Clerk.",
+    };
+  }
 
-  await prisma.user.update({
-    where: { id: data.userId },
-    data: { passwordHash: await bcrypt.hash(data.password, 10) },
-  });
+  const client = await clerkClient();
+  try {
+    await client.users.updateUser(target.clerkUserId, {
+      password: data.password,
+    });
+  } catch (err) {
+    console.error("[resetUserPassword] Clerk:", err);
+    return {
+      ok: false as const,
+      error: "No se pudo actualizar la contraseña en Clerk.",
+    };
+  }
 
   revalidateAdminUsers();
   return { ok: true as const };

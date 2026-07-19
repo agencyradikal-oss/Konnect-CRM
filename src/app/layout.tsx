@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
+import { KonnectClerkProvider } from "@/components/auth/clerk-provider";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { brand } from "@/lib/brand";
 import "./globals.css";
@@ -42,10 +43,12 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-          <Toaster richColors position="top-center" />
-        </NextIntlClientProvider>
+        <KonnectClerkProvider>
+          <NextIntlClientProvider messages={messages}>
+            {children}
+            <Toaster richColors position="top-center" />
+          </NextIntlClientProvider>
+        </KonnectClerkProvider>
       </body>
     </html>
   );

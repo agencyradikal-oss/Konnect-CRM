@@ -95,8 +95,16 @@ export const faqEs: {
       title: "Integraciones",
       items: [
         {
+          q: "¿Cómo conecto QuickBooks o Square?",
+          a: "Hoy: en /app/integraciones activa el webhook lead.created y conéctalo a Zapier/Make → Square o QuickBooks Online. OAuth nativo es roadmap. Detalle en /developers.",
+        },
+        {
+          q: "¿Stripe es para cobrar a mis clientes?",
+          a: "No. Stripe en Konnect cobra tu plan Free/Pro/Premium. No es Stripe Connect para cobros a clientes finales del directorio.",
+        },
+        {
           q: "¿Hay API para desarrolladores?",
-          a: "Estamos abriendo integraciones (webhooks de leads, partners). Consulta /developers o escribe a developers@kmd.agency.",
+          a: "Webhooks de salida ya están. API REST en early access. Consulta /developers o escribe a developers@kmd.agency.",
         },
       ],
     },
@@ -193,8 +201,16 @@ export const faqEn: typeof faqEs = {
       title: "Integrations",
       items: [
         {
+          q: "How do I connect QuickBooks or Square?",
+          a: "Today: in /app/integraciones enable the lead.created webhook and pipe it through Zapier/Make → Square or QuickBooks Online. Native OAuth is on the roadmap. Details at /developers.",
+        },
+        {
+          q: "Is Stripe for charging my customers?",
+          a: "No. Stripe on Konnect bills your Free/Pro/Premium plan. It is not Stripe Connect for charging directory end-customers.",
+        },
+        {
           q: "Is there a developer API?",
-          a: "We are opening integrations (lead webhooks, partners). See /developers or email developers@kmd.agency.",
+          a: "Outbound webhooks are live. REST API is early access. See /developers or email developers@kmd.agency.",
         },
       ],
     },

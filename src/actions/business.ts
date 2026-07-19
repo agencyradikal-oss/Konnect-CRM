@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { auth, requireBusinessSession, unstable_update } from "@/lib/auth";
+import { auth, requireBusinessSession } from "@/lib/auth";
+import { syncClerkUserMetadata } from "@/lib/clerk-sync";
 import { geocodeAddress } from "@/lib/geocode";
 
 /** Solo acepta URLs del store Blob de Vercel (subidas vía /api/blob/upload). */
@@ -143,7 +144,19 @@ export async function registerBusinessFull(formData: FormData) {
       return created;
     });
 
-    await unstable_update({ user: { businessId: business.id } });
+    const linked = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { clerkUserId: true, role: true, disabled: true },
+    });
+    if (linked?.clerkUserId) {
+      await syncClerkUserMetadata({
+        clerkUserId: linked.clerkUserId,
+        konnectUserId: session.user.id,
+        role: linked.role,
+        businessId: business.id,
+        disabled: linked.disabled,
+      });
+    }
 
     return { ok: true as const, slug: business.slug };
   } catch (error) {

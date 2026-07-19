@@ -229,7 +229,9 @@ async function main() {
     businessIds.push(record.id);
   }
 
-  console.log("Seeding usuarios...");
+  // Auth es Clerk: estas filas definen rol/tenant. Vincula al registrarte
+  // en Clerk con el mismo email (o crea el usuario en el dashboard Clerk).
+  console.log("Seeding usuarios (Prisma; login vía Clerk)...");
   const password = await bcrypt.hash("Konnect2026!", 10);
 
   await prisma.user.upsert({

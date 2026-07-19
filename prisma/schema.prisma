@@ -16,8 +16,11 @@ datasource db {
 
 model User {
   id           String    @id @default(cuid())
+  /// ID de Clerk (`user_...`). Auth OAuth / email-password vive en Clerk.
+  clerkUserId  String?   @unique
   email        String    @unique
   name         String?
+  /// Legacy Auth.js — ya no se usa para login (contraseñas en Clerk).
   passwordHash String?
   role         Role      @default(BUSINESS_OWNER)
   businessId   String?
@@ -67,6 +70,10 @@ model Business {
   plan                 Plan           @default(FREE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  /// Webhook de salida (Zapier/Make → Square/QuickBooks, etc.)
+  webhookUrl           String?
+  webhookSecret        String?
+  webhookEnabled       Boolean        @default(false)
   status               BusinessStatus @default(PENDING)
   users                User[]
   leads                Lead[]

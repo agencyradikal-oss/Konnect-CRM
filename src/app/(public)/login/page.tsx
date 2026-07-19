@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
+import { SignIn } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoginForm } from "@/components/auth/login-form";
-import { GoogleButton } from "@/components/auth/google-button";
-import { googleEnabled } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Iniciar sesión",
@@ -17,22 +14,16 @@ export default function LoginPage() {
       <Card>
         <CardHeader>
           <CardTitle>Iniciar sesión</CardTitle>
-          <CardDescription>Accede al CRM de tu negocio.</CardDescription>
+          <CardDescription>
+            Accede al CRM con email/contraseña o Google (OAuth vía Clerk).
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Suspense>
-            <LoginForm />
-          </Suspense>
-          {googleEnabled && (
-            <>
-              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="h-px flex-1 bg-border" />
-                o
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <GoogleButton />
-            </>
-          )}
+        <CardContent className="flex flex-col items-center">
+          <SignIn
+            routing="hash"
+            fallbackRedirectUrl="/app/dashboard"
+            signUpUrl="/signup"
+          />
           <p className="mt-4 text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
             <Link href="/signup" className="text-primary hover:underline">

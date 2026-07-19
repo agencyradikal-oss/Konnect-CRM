@@ -24,7 +24,7 @@ Repo: [agencyradikal-oss/Konnect-CRM](https://github.com/agencyradikal-oss/Konne
 | App | Next.js 16 (App Router) + TypeScript estricto |
 | UI | Tailwind CSS v4 + shadcn/ui (teal `#31C9C0`) |
 | DB | Prisma ORM 6 + PostgreSQL (Neon) |
-| Auth | Auth.js (NextAuth v5) — credentials + Google OAuth opcional |
+| Auth | Clerk — email/password + Google OAuth (roles en Prisma) |
 | Billing | Stripe Billing — Free / Pro ($19) / Premium ($49) |
 | Media | Vercel Blob (logos, portada, galería) |
 | Email | Resend + react-email |
@@ -51,17 +51,24 @@ El tenant se resuelve con `session.user.businessId` → `getCurrentBusiness()` /
 
 ```bash
 npm install
-cp .env.example .env   # completa al menos DATABASE_URL y AUTH_SECRET
+cp .env.example .env   # DATABASE_URL + claves Clerk
 npm run db:deploy      # aplica migraciones
-npm run db:seed        # categorías, negocios demo, usuarios de prueba
+npm run db:seed        # categorías, negocios demo, usuarios Prisma
 npm run dev            # http://localhost:3000
 ```
 
 También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 
+### Auth (Clerk)
+
+1. Crea una app en [dashboard.clerk.com](https://dashboard.clerk.com).
+2. Activa Email + Google OAuth.
+3. Copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`.
+4. Webhook → `https://tu-dominio/api/webhooks/clerk` (eventos `user.created`, `user.updated`, `user.deleted`) → `CLERK_WEBHOOK_SIGNING_SECRET`.
+
 ### Usuarios seed
 
-Contraseña para todos: `Konnect2026!`
+El seed crea filas Prisma (roles/tenant). Para login, crea el mismo email en Clerk (o regístrate en `/signup`); al vincular por email hereda rol/`businessId`.
 
 | Email | Rol |
 |-------|-----|
@@ -94,10 +101,10 @@ Copia [.env.example](.env.example). Resumen:
 |----------|-----------|-------------|
 | `DATABASE_URL` | Sí | Postgres pooled (Neon pooler) — runtime |
 | `DATABASE_URL_UNPOOLED` | Sí (prod) | Postgres directo — migraciones / `db push` |
-| `AUTH_SECRET` | Sí | Secret Auth.js (`npx auth secret`) |
-| `AUTH_URL` | Prod | `https://konnect.kmd.agency` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Sí | Publishable key Clerk |
+| `CLERK_SECRET_KEY` | Sí | Secret key Clerk |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | No | Google OAuth |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | Billing | `whsec_…` del endpoint de webhook |
@@ -162,6 +169,7 @@ SEO: `sitemap.xml`, `robots.txt` (bloquea `/app/`, `/admin/`, `/api/`).
 | `/app/analytics` | Vistas de perfil (Premium) |
 | `/app/perfil` | Editar perfil público / galería |
 | `/app/plan` | Plan y portal Stripe |
+| `/app/integraciones` | Stripe plan, webhook lead.created, Square/QB roadmap |
 
 ### Admin
 
@@ -178,7 +186,7 @@ Un solo archivo: `public/brand/iso.png`. Config en `src/lib/brand.ts`. El compon
 
 | Ruta | Descripción |
 |------|-------------|
-| `/api/auth/[...nextauth]` | Auth.js |
+| `/api/webhooks/clerk` | Sync usuarios Clerk → Prisma |
 | `/api/webhooks/stripe` | Webhook Stripe (firma requerida) |
 | `/api/cron/weekly-leads` | Resumen semanal de leads (cron) |
 | `/api/health` | Diagnóstico DB / env |

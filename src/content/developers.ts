@@ -18,28 +18,26 @@ export const developersEs = {
       id: "overview",
       title: "Visión general",
       body: [
-        "Hoy Konnect expone integraciones internas de producción (Stripe webhooks, Resend, Vercel Blob, Auth.js) y un camino de partners para enviar/recibir eventos de leads.",
-        "La API REST pública para terceros está en early access: solicita acceso y te emitimos credenciales de sandbox.",
+        "Hay dos capas distintas: (1) Stripe Billing — Konnect cobra al negocio por el plan Free/Pro/Premium; (2) integraciones del negocio — webhooks hacia Zapier/Make, Square, QuickBooks u otros sistemas.",
+        "Configura tu webhook de salida en /app/integraciones. La API REST de lectura está en early access.",
       ],
     },
     {
-      id: "auth",
-      title: "Autenticación (próximamente)",
+      id: "stripe-billing",
+      title: "Stripe Billing (suscripción Konnect)",
       body: [
-        "Los partners usarán API keys por negocio o por organización (header Authorization: Bearer <key>). Las keys se podrán rotar desde el panel admin / partners.",
-        "Nunca embeds keys en frontends públicos. Usa solo servidor a servidor.",
+        "Ya en producción: Checkout + Customer Portal + webhook firmado que actualiza Business.plan.",
+        "Variables: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO, STRIPE_PRICE_PREMIUM. Endpoint: POST /api/webhooks/stripe.",
+        "Esto NO es Stripe Connect ni cobro a clientes finales del directorio. El dueño gestiona su plan en /app/plan o /app/integraciones.",
       ],
-      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
-  -H "Authorization: Bearer kn_live_xxx" \\
-  -H "Accept: application/json"`,
-      codeLang: "bash",
     },
     {
       id: "webhooks",
-      title: "Webhooks de salida (leads)",
+      title: "Webhooks de salida (leads → Square / QuickBooks / Zapier)",
       body: [
-        "Cuando un lead se crea vía El Puente (formulario, cotización, click-to-call, WhatsApp), Konnect puede POST-ear un evento firmado a tu endpoint.",
-        "Firma: header X-Konnect-Signature (HMAC-SHA256 del body con tu webhook secret). Responde 2xx en menos de 5s; reintentamos con backoff.",
+        "Cuando un lead se crea vía El Puente, Konnect hace POST a tu URL (si está habilitada en /app/integraciones).",
+        "Firma: header X-Konnect-Signature = HMAC-SHA256 hex del body con tu webhook secret. También enviamos X-Konnect-Event: lead.created. Responde 2xx en < 5s.",
+        "Camino recomendado hoy: Konnect webhook → Zapier/Make → Square o QuickBooks Online (crear cliente/factura). OAuth nativo Square/QB es roadmap (Fase 2).",
       ],
       code: `{
   "id": "evt_...",
@@ -47,6 +45,7 @@ export const developersEs = {
   "created_at": "2026-07-18T16:00:00.000Z",
   "data": {
     "lead_id": "clx...",
+    "business_id": "clx...",
     "business_slug": "granitos-el-aguila",
     "name": "María Pérez",
     "email": "maria@email.com",
@@ -58,34 +57,53 @@ export const developersEs = {
       codeLang: "json",
     },
     {
-      id: "puente",
-      title: "El Puente (entrada pública)",
+      id: "square-qb",
+      title: "Square y QuickBooks",
       body: [
-        "No necesitas API para capturar leads del perfil público: los formularios y clicks ya crean leads en el CRM del negocio.",
-        "Sources: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP | MANUAL | IMPORT | REFERRAL.",
+        "Square: usa el webhook lead.created en Zapier (“Catch Hook”) y crea Customer/Invoice en Square. No hay OAuth nativo en Konnect todavía.",
+        "QuickBooks Online: mismo flujo — webhook → Make/Zapier → Create Customer / Estimate. Solicita early access OAuth a developers@kmd.agency si necesitas sync nativo.",
+        "Evento futuro (roadmap): deal.won para facturar solo deals cerrados.",
       ],
     },
     {
-      id: "platforms",
-      title: "Plataformas y partners",
+      id: "puente",
+      title: "El Puente (entrada pública)",
       body: [
-        "Casos de uso típicos: Zapier/Make (vía webhook), WhatsApp Business API propia, Google Sheets, CRMs externos (HubSpot, Salesforce), SMS (Twilio).",
-        "Si fabricas un conector oficial, escríbenos para co-marketing y sandbox compartido.",
+        "Sources que disparan lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP (también MANUAL / IMPORT / REFERRAL desde el CRM).",
+        "No necesitas API para capturar leads del perfil público: los formularios y clicks ya crean el lead y, si hay webhook, lo reenvían.",
+      ],
+    },
+    {
+      id: "auth",
+      title: "Autenticación API (próximamente)",
+      body: [
+        "Los partners usarán API keys por negocio (Authorization: Bearer kn_live_…). Nunca embeds keys en frontends públicos.",
+      ],
+      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
+  -H "Authorization: Bearer kn_live_xxx" \\
+  -H "Accept: application/json"`,
+      codeLang: "bash",
+    },
+    {
+      id: "platforms",
+      title: "Otras plataformas",
+      body: [
+        "Zapier/Make, WhatsApp Business API, Google Sheets, HubSpot/Salesforce, Twilio SMS. Conector oficial: escríbenos para sandbox compartido.",
       ],
     },
     {
       id: "limits",
       title: "Límites y buenas prácticas",
       body: [
-        "Respeta rate limits (se documentarán por plan). No hagas scraping del directorio. Sanitiza PII en tus sistemas. Cumple TCPA/CAN-SPAM al contactar leads.",
+        "Verifica siempre X-Konnect-Signature. No hagas scraping del directorio. Sanitiza PII. Cumple TCPA/CAN-SPAM al contactar leads.",
       ],
     },
     {
       id: "contacto",
       title: "Solicitar acceso",
       body: [
-        `Email: ${DEVELOPERS_CONTACT} — incluye nombre de empresa, caso de uso y si necesitas webhooks de salida, API de lectura de leads, o ambos.`,
-        "Asunto sugerido: [Konnect API] Solicitud early access.",
+        `Email: ${DEVELOPERS_CONTACT} — indica Square, QuickBooks, webhooks o API de lectura.`,
+        "Asunto sugerido: [Konnect API] Early access.",
       ],
     },
   ] satisfies DevSection[],
@@ -101,28 +119,26 @@ export const developersEn = {
       id: "overview",
       title: "Overview",
       body: [
-        "Konnect already runs production integrations (Stripe webhooks, Resend, Vercel Blob, Auth.js) and a partner path for lead events.",
-        "The third-party public REST API is in early access — request access and we will issue sandbox credentials.",
+        "Two distinct layers: (1) Stripe Billing — Konnect charges the business for Free/Pro/Premium; (2) business integrations — outbound webhooks to Zapier/Make, Square, QuickBooks, or other systems.",
+        "Configure your outbound webhook at /app/integraciones. The read REST API is in early access.",
       ],
     },
     {
-      id: "auth",
-      title: "Authentication (coming soon)",
+      id: "stripe-billing",
+      title: "Stripe Billing (Konnect subscription)",
       body: [
-        "Partners will use per-business or org API keys (Authorization: Bearer <key>). Keys will be rotatable from the admin/partners console.",
-        "Never embed keys in public frontends. Server-to-server only.",
+        "In production: Checkout + Customer Portal + signed webhook that updates Business.plan.",
+        "Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO, STRIPE_PRICE_PREMIUM. Endpoint: POST /api/webhooks/stripe.",
+        "This is NOT Stripe Connect and not charging directory end-customers. Owners manage plans at /app/plan or /app/integraciones.",
       ],
-      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
-  -H "Authorization: Bearer kn_live_xxx" \\
-  -H "Accept: application/json"`,
-      codeLang: "bash",
     },
     {
       id: "webhooks",
-      title: "Outbound webhooks (leads)",
+      title: "Outbound webhooks (leads → Square / QuickBooks / Zapier)",
       body: [
-        "When a lead is created via El Puente, Konnect can POST a signed event to your endpoint.",
-        "Signature: X-Konnect-Signature header (HMAC-SHA256 of the body with your webhook secret). Return 2xx within 5s; we retry with backoff.",
+        "When a lead is created via El Puente, Konnect POSTs to your URL (if enabled in /app/integraciones).",
+        "Signature: X-Konnect-Signature = hex HMAC-SHA256 of the body with your webhook secret. Also X-Konnect-Event: lead.created. Return 2xx within 5s.",
+        "Recommended path today: Konnect webhook → Zapier/Make → Square or QuickBooks Online. Native Square/QB OAuth is Phase 2 roadmap.",
       ],
       code: `{
   "id": "evt_...",
@@ -130,6 +146,7 @@ export const developersEn = {
   "created_at": "2026-07-18T16:00:00.000Z",
   "data": {
     "lead_id": "clx...",
+    "business_id": "clx...",
     "business_slug": "granitos-el-aguila",
     "name": "Maria Perez",
     "email": "maria@email.com",
@@ -141,34 +158,53 @@ export const developersEn = {
       codeLang: "json",
     },
     {
-      id: "puente",
-      title: "El Puente (public intake)",
+      id: "square-qb",
+      title: "Square and QuickBooks",
       body: [
-        "You do not need an API to capture public-profile leads — forms and clicks already create CRM leads.",
-        "Sources: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP | MANUAL | IMPORT | REFERRAL.",
+        "Square: point lead.created at a Zapier Catch Hook and create Customer/Invoice in Square. No native OAuth in Konnect yet.",
+        "QuickBooks Online: same flow — webhook → Make/Zapier → Create Customer / Estimate. Request native OAuth early access at developers@kmd.agency.",
+        "Future event (roadmap): deal.won to invoice only closed deals.",
       ],
     },
     {
-      id: "platforms",
-      title: "Platforms & partners",
+      id: "puente",
+      title: "El Puente (public intake)",
       body: [
-        "Typical use cases: Zapier/Make (via webhook), your WhatsApp Business API, Google Sheets, external CRMs (HubSpot, Salesforce), SMS (Twilio).",
-        "Building an official connector? Email us for co-marketing and a shared sandbox.",
+        "Sources that fire lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP (also MANUAL / IMPORT / REFERRAL from the CRM).",
+        "You do not need an API to capture public-profile leads — forms and clicks create the lead and forward it when a webhook is configured.",
+      ],
+    },
+    {
+      id: "auth",
+      title: "API authentication (coming soon)",
+      body: [
+        "Partners will use per-business API keys (Authorization: Bearer kn_live_…). Never embed keys in public frontends.",
+      ],
+      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
+  -H "Authorization: Bearer kn_live_xxx" \\
+  -H "Accept: application/json"`,
+      codeLang: "bash",
+    },
+    {
+      id: "platforms",
+      title: "Other platforms",
+      body: [
+        "Zapier/Make, WhatsApp Business API, Google Sheets, HubSpot/Salesforce, Twilio SMS. Building an official connector? Email us for a shared sandbox.",
       ],
     },
     {
       id: "limits",
       title: "Limits & best practices",
       body: [
-        "Respect rate limits (documented per plan). Do not scrape the directory. Sanitize PII in your systems. Follow TCPA/CAN-SPAM when contacting leads.",
+        "Always verify X-Konnect-Signature. Do not scrape the directory. Sanitize PII. Follow TCPA/CAN-SPAM when contacting leads.",
       ],
     },
     {
       id: "contacto",
       title: "Request access",
       body: [
-        `Email: ${DEVELOPERS_CONTACT} — include company name, use case, and whether you need outbound webhooks, lead read API, or both.`,
-        "Suggested subject: [Konnect API] Early access request.",
+        `Email: ${DEVELOPERS_CONTACT} — mention Square, QuickBooks, webhooks, or read API.`,
+        "Suggested subject: [Konnect API] Early access.",
       ],
     },
   ] satisfies DevSection[],
