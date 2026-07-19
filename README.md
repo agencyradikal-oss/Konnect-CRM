@@ -65,6 +65,7 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 2. Activa Email + Google OAuth.
 3. Copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`.
 4. Webhook → `https://tu-dominio/api/webhooks/clerk` (eventos `user.created`, `user.updated`, `user.deleted`) → `CLERK_WEBHOOK_SIGNING_SECRET`.
+5. Producción sin CNAME custom: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk` y en Clerk Dashboard → Domains → Set proxy configuration a esa URL (middleware ya tiene `frontendApiProxy`).
 
 ### Usuarios seed
 
@@ -104,6 +105,7 @@ Copia [.env.example](.env.example). Resumen:
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Sí | Publishable key Clerk |
 | `CLERK_SECRET_KEY` | Sí | Secret key Clerk |
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
+| `NEXT_PUBLIC_CLERK_PROXY_URL` | Prod | `https://konnect.kmd.agency/__clerk` (proxy FAPI) |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |

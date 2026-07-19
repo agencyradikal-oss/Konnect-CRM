@@ -6,22 +6,31 @@ const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 /**
  * Clerk autentica; role/businessId se validan en layouts + Server Actions (Prisma).
- * Claims de publicMetadata (si están en el JWT) solo aceleran redirects.
+ * frontendApiProxy: FAPI vía /__clerk (sin CNAME clerk.kmd.agency).
  */
-export default clerkMiddleware(async (auth, req) => {
-  if (isAppRoute(req) || isAdminRoute(req)) {
-    const session = await auth();
-    if (!session.userId) {
-      return session.redirectToSignIn({ returnBackUrl: req.url });
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isAppRoute(req) || isAdminRoute(req)) {
+      const session = await auth();
+      if (!session.userId) {
+        return session.redirectToSignIn({ returnBackUrl: req.url });
+      }
     }
-  }
-  return NextResponse.next();
-});
+    return NextResponse.next();
+  },
+  {
+    frontendApiProxy: {
+      enabled: true,
+    },
+  },
+);
 
 export const config = {
   matcher: [
-    // Incluye rutas de la app + handshake de Clerk
+    // App + handshake de Clerk
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
+    // Proxy Frontend API
+    "/__clerk/(.*)",
   ],
 };
