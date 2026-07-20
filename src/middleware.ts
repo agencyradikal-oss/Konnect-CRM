@@ -6,14 +6,21 @@ const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 /**
  * Clerk autentica; role/businessId se validan en layouts + Server Actions (Prisma).
- * frontendApiProxy: FAPI vía /__clerk (sin CNAME clerk.kmd.agency).
+ * frontendApiProxy: FAPI vía /__clerk (sin CNAME clerk.* / accounts.*).
+ * signInUrl/signUpUrl: paths en konnect (no Account Portal accounts.kmd.agency).
  */
 export default clerkMiddleware(
   async (auth, req) => {
     if (isAppRoute(req) || isAdminRoute(req)) {
       const session = await auth();
       if (!session.userId) {
-        return session.redirectToSignIn({ returnBackUrl: req.url });
+        // Evita Account Portal en accounts.kmd.agency (DNS sin CNAME).
+        const login = new URL("/login", req.url);
+        login.searchParams.set(
+          "callbackUrl",
+          `${req.nextUrl.pathname}${req.nextUrl.search}`,
+        );
+        return NextResponse.redirect(login);
       }
     }
     return NextResponse.next();
@@ -22,6 +29,8 @@ export default clerkMiddleware(
     frontendApiProxy: {
       enabled: true,
     },
+    signInUrl: "/login",
+    signUpUrl: "/signup",
   },
 );
 

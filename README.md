@@ -65,7 +65,8 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 2. Activa Email + Google OAuth.
 3. Copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`.
 4. Webhook → `https://tu-dominio/api/webhooks/clerk` (eventos `user.created`, `user.updated`, `user.deleted`) → `CLERK_WEBHOOK_SIGNING_SECRET`.
-5. Producción sin CNAME custom: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk` y en Clerk Dashboard → Domains → Set proxy configuration a esa URL (middleware ya tiene `frontendApiProxy`).
+5. Producción sin CNAME custom: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk` y en Clerk Dashboard → Domains → Set proxy a esa URL.
+6. Account Portal: en Clerk → Account Portal, usa paths de la app (`https://konnect.kmd.agency/login` y `/signup`) o desactiva el portal hosted. **No** uses `accounts.kmd.agency` hasta tener el CNAME DNS.
 
 ### Usuarios seed
 
