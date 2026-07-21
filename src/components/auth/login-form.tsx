@@ -38,16 +38,26 @@ function LoginSignIn() {
   const authError = searchParams.get("authError");
   const sessionBroken = authError === "no_server_session";
   const redirectedRef = useRef(false);
-  const cleanedRef = useRef(false);
+  const resetRef = useRef(false);
   const [busy, setBusy] = useState(false);
 
-  // Limpia cookies de instancias mezcladas al montar.
+  // Cookies mezcladas o sesión rota → hard reset una vez.
   useEffect(() => {
-    if (cleanedRef.current) return;
-    if (!hasMixedClerkInstanceCookies()) return;
-    cleanedRef.current = true;
-    clearClerkBrowserCookies();
-  }, []);
+    if (resetRef.current || !isLoaded) return;
+    const shouldReset = sessionBroken || hasMixedClerkInstanceCookies();
+    if (!shouldReset) return;
+    resetRef.current = true;
+    void (async () => {
+      clearClerkBrowserCookies();
+      try {
+        await signOut({ redirectUrl: undefined });
+      } catch {
+        // ignore
+      }
+      clearClerkBrowserCookies();
+      router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    })();
+  }, [isLoaded, sessionBroken, signOut, router, callbackUrl]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || sessionBroken || redirectedRef.current) {
@@ -57,17 +67,10 @@ function LoginSignIn() {
     router.replace(redirectUrl);
   }, [isLoaded, isSignedIn, sessionBroken, redirectUrl, router]);
 
-  // Cliente ya no firmado pero URL sigue con authError → limpia query y muestra SignIn.
-  useEffect(() => {
-    if (!isLoaded || isSignedIn || !sessionBroken) return;
-    clearClerkBrowserCookies();
-    router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }, [isLoaded, isSignedIn, sessionBroken, callbackUrl, router]);
-
   async function hardSignOut() {
     setBusy(true);
+    clearClerkBrowserCookies();
     try {
-      clearClerkBrowserCookies();
       await signOut({ redirectUrl: "/login" });
     } finally {
       clearClerkBrowserCookies();
@@ -75,13 +78,7 @@ function LoginSignIn() {
     }
   }
 
-  async function retryContinue() {
-    setBusy(true);
-    redirectedRef.current = false;
-    router.replace(redirectUrl);
-  }
-
-  if (!isLoaded) {
+  if (!isLoaded || (sessionBroken && !resetRef.current)) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         Cargando…
@@ -89,30 +86,15 @@ function LoginSignIn() {
     );
   }
 
-  if (isSignedIn && sessionBroken) {
+  if (sessionBroken) {
     return (
       <div className="flex w-full flex-col items-center gap-4 py-6 text-center">
         <p className="text-sm text-muted-foreground">
-          Tu sesión en el navegador no coincide con el servidor (cookies o
-          proxy de Clerk). Cierra sesión o reintenta.
+          Reiniciando sesión… Si esto no desaparece, cierra sesión.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={() => void retryContinue()}
-          >
-            {busy ? "Reintentando…" : "Reintentar"}
-          </Button>
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => void hardSignOut()}
-          >
-            {busy ? "Saliendo…" : "Cerrar sesión"}
-          </Button>
-        </div>
+        <Button type="button" disabled={busy} onClick={() => void hardSignOut()}>
+          {busy ? "Saliendo…" : "Cerrar sesión"}
+        </Button>
       </div>
     );
   }
