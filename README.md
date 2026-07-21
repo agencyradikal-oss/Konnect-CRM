@@ -66,14 +66,15 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 3. Copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`.
 4. Webhook → `https://tu-dominio/api/webhooks/clerk` (eventos `user.created`, `user.updated`, `user.deleted`) → `CLERK_WEBHOOK_SIGNING_SECRET`.
 5. Producción sin CNAME custom:
-   - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
+   - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk` (con o sin `/` final)
    - Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login` y `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`
-   - Clerk Dashboard → **Domains** → **Set proxy** = `https://konnect.kmd.agency/__clerk`
+   - Clerk Dashboard → **Domains** → **Set proxy** = `https://konnect.kmd.agency/__clerk` (**obligatorio**; sin esto el cliente firma sesión pero el servidor no)
 6. Clerk → **Attack protection**: desactiva **Bot sign-up protection** / CAPTCHA (Turnstile falla con el proxy FAPI).
 7. Google Cloud Console → OAuth client de Clerk → **Authorized redirect URIs** añade:
    `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
 8. Account Portal: paths de la app (`/login`, `/signup`). **No** uses `accounts.kmd.agency` sin CNAME.
-9. Si hay loop login o “Inicia sesión primero”: borra cookies `__session*` / `__client*` de `konnect.kmd.agency` (mezcla de instancias Clerk).
+9. Si ves “sesión no coincide con el servidor” o loop: **Cerrar sesión** (limpia cookies `__session*` / `__client*`) o borra cookies del sitio. Mezclar keys de Development + Production rompe el handshake.
+10. Health de sesión: `GET /api/auth/status` → `{ clerkHasUserId, prisma: { ok, hasBusinessId } }`.
 
 ### Usuarios seed
 

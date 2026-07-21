@@ -7,10 +7,12 @@ const PRODUCTION_PROXY = "https://konnect.kmd.agency/__clerk";
 
 function resolveProxyUrl() {
   const fromEnv = process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim();
-  if (fromEnv) return fromEnv;
-  // Build de producción en Vercel sin depender de setear la env a mano
-  if (process.env.VERCEL_ENV === "production") return PRODUCTION_PROXY;
-  return undefined;
+  const raw =
+    fromEnv ||
+    (process.env.VERCEL_ENV === "production" ? PRODUCTION_PROXY : undefined);
+  if (!raw) return undefined;
+  // Clerk docs usan trailing slash en el proxy URL.
+  return raw.endsWith("/") ? raw : `${raw}/`;
 }
 
 export function KonnectClerkProvider({ children }: { children: ReactNode }) {
@@ -20,8 +22,8 @@ export function KonnectClerkProvider({ children }: { children: ReactNode }) {
     <ClerkProvider
       signInUrl="/login"
       signUpUrl="/signup"
-      signInFallbackRedirectUrl="/app/dashboard"
-      signUpFallbackRedirectUrl="/registrar-empresa"
+      signInFallbackRedirectUrl="/auth/continue?callbackUrl=%2Fapp%2Fdashboard"
+      signUpFallbackRedirectUrl="/auth/continue?callbackUrl=%2Fregistrar-empresa"
       afterSignOutUrl="/"
       {...(proxyUrl ? { proxyUrl } : {})}
     >

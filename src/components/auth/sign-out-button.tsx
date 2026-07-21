@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { clearClerkBrowserCookies } from "@/lib/clerk-cookies";
 
 type Props = {
   redirectUrl?: string;
@@ -34,7 +35,9 @@ export function SignOutButton({
       disabled={pending}
       onClick={() => {
         startTransition(async () => {
+          clearClerkBrowserCookies();
           await signOut({ redirectUrl });
+          clearClerkBrowserCookies();
         });
       }}
     >

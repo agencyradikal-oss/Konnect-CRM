@@ -4,11 +4,15 @@ import { NextResponse } from "next/server";
 const isAppRoute = createRouteMatcher(["/app(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-const PROXY_URL =
-  process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim() ||
-  (process.env.VERCEL_ENV === "production"
-    ? "https://konnect.kmd.agency/__clerk"
-    : undefined);
+const PROXY_URL = (() => {
+  const raw =
+    process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim() ||
+    (process.env.VERCEL_ENV === "production"
+      ? "https://konnect.kmd.agency/__clerk"
+      : undefined);
+  if (!raw) return undefined;
+  return raw.endsWith("/") ? raw : `${raw}/`;
+})();
 
 /**
  * Clerk autentica; role/businessId se validan en layouts + Server Actions (Prisma).

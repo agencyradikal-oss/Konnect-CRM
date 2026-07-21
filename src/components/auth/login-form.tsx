@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { SignIn, useAuth } from "@clerk/nextjs";
+import { SignIn, useAuth, useClerk } from "@clerk/nextjs";
 import {
   Card,
   CardContent,
@@ -12,7 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import {
+  clearClerkBrowserCookies,
+  hasMixedClerkInstanceCookies,
+} from "@/lib/clerk-cookies";
 
 function safeCallbackUrl(raw: string | null) {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
@@ -21,7 +24,6 @@ function safeCallbackUrl(raw: string | null) {
   return raw;
 }
 
-/** Post-auth: decide CRM vs registrar-empresa según businessId en servidor. */
 function continueUrl(callbackUrl: string) {
   return `/auth/continue?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 }
@@ -29,13 +31,23 @@ function continueUrl(callbackUrl: string) {
 function LoginSignIn() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { signOut } = useClerk();
   const { isLoaded, isSignedIn } = useAuth();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const redirectUrl = continueUrl(callbackUrl);
   const authError = searchParams.get("authError");
   const sessionBroken = authError === "no_server_session";
   const redirectedRef = useRef(false);
-  const [retrying, setRetrying] = useState(false);
+  const cleanedRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+
+  // Limpia cookies de instancias mezcladas al montar.
+  useEffect(() => {
+    if (cleanedRef.current) return;
+    if (!hasMixedClerkInstanceCookies()) return;
+    cleanedRef.current = true;
+    clearClerkBrowserCookies();
+  }, []);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || sessionBroken || redirectedRef.current) {
@@ -44,6 +56,30 @@ function LoginSignIn() {
     redirectedRef.current = true;
     router.replace(redirectUrl);
   }, [isLoaded, isSignedIn, sessionBroken, redirectUrl, router]);
+
+  // Cliente ya no firmado pero URL sigue con authError → limpia query y muestra SignIn.
+  useEffect(() => {
+    if (!isLoaded || isSignedIn || !sessionBroken) return;
+    clearClerkBrowserCookies();
+    router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }, [isLoaded, isSignedIn, sessionBroken, callbackUrl, router]);
+
+  async function hardSignOut() {
+    setBusy(true);
+    try {
+      clearClerkBrowserCookies();
+      await signOut({ redirectUrl: "/login" });
+    } finally {
+      clearClerkBrowserCookies();
+      window.location.assign("/login");
+    }
+  }
+
+  async function retryContinue() {
+    setBusy(true);
+    redirectedRef.current = false;
+    router.replace(redirectUrl);
+  }
 
   if (!isLoaded) {
     return (
@@ -64,16 +100,18 @@ function LoginSignIn() {
           <Button
             type="button"
             variant="outline"
-            disabled={retrying}
-            onClick={() => {
-              setRetrying(true);
-              redirectedRef.current = false;
-              router.replace(redirectUrl);
-            }}
+            disabled={busy}
+            onClick={() => void retryContinue()}
           >
-            {retrying ? "Reintentando…" : "Reintentar"}
+            {busy ? "Reintentando…" : "Reintentar"}
           </Button>
-          <SignOutButton redirectUrl="/login" variant="default" />
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => void hardSignOut()}
+          >
+            {busy ? "Saliendo…" : "Cerrar sesión"}
+          </Button>
         </div>
       </div>
     );
