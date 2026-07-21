@@ -123,9 +123,6 @@ export async function upsertUserFromClerk(
 
   const existing = await findExisting();
   const disabled = clerkUser.banned || Boolean(existing?.user.disabled);
-  let linkPath: "update" | "create" | "create-race-retry" = existing
-    ? "update"
-    : "create";
   let user;
 
   if (existing) {
@@ -157,30 +154,8 @@ export async function upsertUserFromClerk(
       }
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
-      // #region agent log
-      fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "11ae6f",
-        },
-        body: JSON.stringify({
-          sessionId: "11ae6f",
-          runId: "post-fix",
-          hypothesisId: "F",
-          location: "clerk-sync.ts:create-race",
-          message: "upsert-create-unique-violation-retry",
-          data: {
-            targets: (error as Prisma.PrismaClientKnownRequestError).meta
-              ?.target,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       const raced = await findExisting();
       if (!raced) throw error;
-      linkPath = "create-race-retry";
       user = await prisma.user.update({
         where: { id: raced.user.id },
         data: {
@@ -192,30 +167,6 @@ export async function upsertUserFromClerk(
       });
     }
   }
-
-  // #region agent log
-  fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "11ae6f",
-    },
-    body: JSON.stringify({
-      sessionId: "11ae6f",
-      runId: "post-fix",
-      hypothesisId: "F",
-      location: "clerk-sync.ts:upsert-ok",
-      message: "upsert-user-ok",
-      data: {
-        linkPath,
-        via: existing?.via ?? null,
-        hasBusinessId: Boolean(user.businessId),
-        role: user.role,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   await syncClerkUserMetadata({
     clerkUserId: clerkUser.id,

@@ -4,6 +4,12 @@ import { NextResponse } from "next/server";
 const isAppRoute = createRouteMatcher(["/app(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
+const PROXY_URL =
+  process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim() ||
+  (process.env.VERCEL_ENV === "production"
+    ? "https://konnect.kmd.agency/__clerk"
+    : undefined);
+
 /**
  * Clerk autentica; role/businessId se validan en layouts + Server Actions (Prisma).
  * frontendApiProxy: FAPI vía /__clerk (sin CNAME clerk.* / accounts.*).
@@ -14,7 +20,6 @@ export default clerkMiddleware(
     if (isAppRoute(req) || isAdminRoute(req)) {
       const session = await auth();
       if (!session.userId) {
-        // Evita Account Portal en accounts.kmd.agency (DNS sin CNAME).
         const login = new URL("/login", req.url);
         login.searchParams.set(
           "callbackUrl",
@@ -29,6 +34,7 @@ export default clerkMiddleware(
     frontendApiProxy: {
       enabled: true,
     },
+    ...(PROXY_URL ? { proxyUrl: PROXY_URL } : {}),
     signInUrl: "/login",
     signUpUrl: "/signup",
   },
@@ -36,10 +42,8 @@ export default clerkMiddleware(
 
 export const config = {
   matcher: [
-    // App + handshake de Clerk
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
-    // Proxy Frontend API
     "/__clerk/(.*)",
   ],
 };

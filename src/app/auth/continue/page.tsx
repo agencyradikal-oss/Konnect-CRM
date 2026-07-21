@@ -12,6 +12,8 @@ function safeCallbackUrl(raw: string | null) {
 
 /**
  * Post-login/signup: envía al CRM o a registrar negocio si aún no hay businessId.
+ * Si el cliente Clerk está firmado pero el servidor no ve sesión, vuelve a login
+ * con authError para cortar el loop infinito.
  */
 export default async function AuthContinuePage({
   searchParams,
@@ -22,31 +24,11 @@ export default async function AuthContinuePage({
   const params = await searchParams;
   const callbackUrl = safeCallbackUrl(params.callbackUrl ?? null);
 
-  // #region agent log
-  fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "11ae6f",
-    },
-    body: JSON.stringify({
-      sessionId: "11ae6f",
-      runId: "post-fix",
-      hypothesisId: "D",
-      location: "auth/continue/page.tsx",
-      message: "auth-continue-gate",
-      data: {
-        hasSession: Boolean(session?.user),
-        hasBusinessId: Boolean(session?.user?.businessId),
-        callbackUrl,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   if (!session?.user) {
-    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    const login = new URL("/login", "http://local");
+    login.searchParams.set("callbackUrl", callbackUrl);
+    login.searchParams.set("authError", "no_server_session");
+    redirect(`${login.pathname}${login.search}`);
   }
 
   if (!session.user.businessId) {

@@ -21,107 +21,22 @@ export type AppSession = {
  */
 export async function auth(): Promise<AppSession | null> {
   const { userId } = await clerkAuth();
-  if (!userId) {
-    // #region agent log
-    fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "11ae6f",
-      },
-      body: JSON.stringify({
-        sessionId: "11ae6f",
-        runId: "pre-fix",
-        hypothesisId: "C",
-        location: "lib/auth.ts:no-clerk",
-        message: "auth-null-no-clerk-user",
-        data: {},
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-    return null;
-  }
+  if (!userId) return null;
 
   let dbUser = await prisma.user.findUnique({
     where: { clerkUserId: userId },
   });
-  let linkedViaUpsert = false;
 
   if (!dbUser) {
     const clerkUser = await currentUser();
-    if (!clerkUser) {
-      // #region agent log
-      fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "11ae6f",
-        },
-        body: JSON.stringify({
-          sessionId: "11ae6f",
-          runId: "pre-fix",
-          hypothesisId: "C",
-          location: "lib/auth.ts:no-currentUser",
-          message: "auth-null-clerk-without-currentUser",
-          data: { hasClerkUserId: true },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-      return null;
-    }
+    if (!clerkUser) return null;
     dbUser = await upsertUserFromClerk(
       clerkUser as unknown as Record<string, unknown>,
       { sendWelcome: true },
     );
-    linkedViaUpsert = true;
   }
 
-  if (dbUser.disabled) {
-    // #region agent log
-    fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "11ae6f",
-      },
-      body: JSON.stringify({
-        sessionId: "11ae6f",
-        runId: "pre-fix",
-        hypothesisId: "C",
-        location: "lib/auth.ts:disabled",
-        message: "auth-null-user-disabled",
-        data: { linkedViaUpsert },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-    return null;
-  }
-
-  // #region agent log
-  fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "11ae6f",
-    },
-    body: JSON.stringify({
-      sessionId: "11ae6f",
-      runId: "pre-fix",
-      hypothesisId: "C",
-      location: "lib/auth.ts:ok",
-      message: "auth-session-ok",
-      data: {
-        linkedViaUpsert,
-        role: dbUser.role,
-        hasBusinessId: Boolean(dbUser.businessId),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  if (dbUser.disabled) return null;
 
   return {
     user: {

@@ -4,7 +4,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import { KonnectClerkProvider } from "@/components/auth/clerk-provider";
-import { DebugAuthBeacon } from "@/components/auth/debug-auth-beacon";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { brand } from "@/lib/brand";
 import "./globals.css";
@@ -45,7 +44,6 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <KonnectClerkProvider>
-          <DebugAuthBeacon />
           <NextIntlClientProvider messages={messages}>
             {children}
             <Toaster richColors position="top-center" />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { SignIn, useAuth } from "@clerk/nextjs";
 import {
   Card,
@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 function safeCallbackUrl(raw: string | null) {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
@@ -27,66 +29,53 @@ function continueUrl(callbackUrl: string) {
 function LoginSignIn() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const redirectUrl = continueUrl(callbackUrl);
+  const authError = searchParams.get("authError");
+  const sessionBroken = authError === "no_server_session";
+  const redirectedRef = useRef(false);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "11ae6f",
-      },
-      body: JSON.stringify({
-        sessionId: "11ae6f",
-        runId: "post-fix",
-        hypothesisId: "A",
-        location: "login-form.tsx:state",
-        message: "login-auth-state",
-        data: {
-          isLoaded,
-          isSignedIn: Boolean(isSignedIn),
-          hasUserId: Boolean(userId),
-          redirectUrl,
-          callbackRaw: searchParams.get("callbackUrl"),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [isLoaded, isSignedIn, userId, redirectUrl, searchParams]);
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      // #region agent log
-      fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "11ae6f",
-        },
-        body: JSON.stringify({
-          sessionId: "11ae6f",
-          runId: "post-fix",
-          hypothesisId: "B",
-          location: "login-form.tsx:redirect",
-          message: "calling-router-replace",
-          data: { redirectUrl },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-      router.replace(redirectUrl);
+    if (!isLoaded || !isSignedIn || sessionBroken || redirectedRef.current) {
+      return;
     }
-  }, [isLoaded, isSignedIn, redirectUrl, router]);
+    redirectedRef.current = true;
+    router.replace(redirectUrl);
+  }, [isLoaded, isSignedIn, sessionBroken, redirectUrl, router]);
 
   if (!isLoaded) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         Cargando…
       </p>
+    );
+  }
+
+  if (isSignedIn && sessionBroken) {
+    return (
+      <div className="flex w-full flex-col items-center gap-4 py-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Tu sesión en el navegador no coincide con el servidor (cookies o
+          proxy de Clerk). Cierra sesión o reintenta.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={retrying}
+            onClick={() => {
+              setRetrying(true);
+              redirectedRef.current = false;
+              router.replace(redirectUrl);
+            }}
+          >
+            {retrying ? "Reintentando…" : "Reintentar"}
+          </Button>
+          <SignOutButton redirectUrl="/login" variant="default" />
+        </div>
+      </div>
     );
   }
 

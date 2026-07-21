@@ -17,30 +17,6 @@ export default async function CrmLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  // #region agent log
-  fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "11ae6f",
-    },
-    body: JSON.stringify({
-      sessionId: "11ae6f",
-      runId: "pre-fix",
-      hypothesisId: "D",
-      location: "app/app/layout.tsx:gate",
-      message: "crm-layout-auth-gate",
-      data: {
-        hasSession: Boolean(session?.user),
-        role: session?.user?.role ?? null,
-        hasBusinessId: Boolean(session?.user?.businessId),
-        willRedirectLogin: !session?.user,
-        willRedirectRegistrar: Boolean(session?.user && !session.user.businessId),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   if (!session?.user) redirect("/login?callbackUrl=/app/dashboard");
   if (!session.user.businessId) redirect("/registrar-empresa");
 
