@@ -69,11 +69,13 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
    - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
    - Clerk Dashboard → **Domains** → **Set proxy URL** = `https://konnect.kmd.agency/__clerk`  
      (sin este paso: cliente firmado / servidor `auth()` null / loop)
-6. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
-7. Attack protection: desactiva Bot/CAPTCHA (Turnstile falla con proxy).
-8. Google Cloud → redirect URI: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
-9. Alternativa a largo plazo: CNAME `clerk` → Clerk, o quitar el custom domain en Clerk y usar `*.clerk.accounts.dev`.
-10. Health: `GET /api/auth/status`.
+6. Si ves `session-token-but-no-client-uat` o handshake anidado/404: borra cookies con
+   `POST /api/auth/clear-clerk` (incluye HttpOnly `__session`) o el botón en `/login`.
+7. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
+8. Attack protection: desactiva Bot/CAPTCHA (Turnstile falla con proxy).
+9. Google Cloud → redirect URI: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
+10. Alternativa a largo plazo: CNAME `clerk` → Clerk, o quitar el custom domain en Clerk y usar `*.clerk.accounts.dev`.
+11. Health: `GET /api/auth/status`.
 
 ### Usuarios seed
 

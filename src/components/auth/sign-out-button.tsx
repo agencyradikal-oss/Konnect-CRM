@@ -15,6 +15,20 @@ type Props = {
   showIcon?: boolean;
 };
 
+async function clearAllClerkCookies() {
+  clearClerkBrowserCookies();
+  try {
+    await fetch("/api/auth/clear-clerk", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch {
+    // ignore
+  }
+  clearClerkBrowserCookies();
+}
+
 export function SignOutButton({
   redirectUrl = "/",
   variant = "ghost",
@@ -35,9 +49,14 @@ export function SignOutButton({
       disabled={pending}
       onClick={() => {
         startTransition(async () => {
-          clearClerkBrowserCookies();
-          await signOut({ redirectUrl });
-          clearClerkBrowserCookies();
+          await clearAllClerkCookies();
+          try {
+            await signOut({ redirectUrl: undefined });
+          } catch {
+            // ignore
+          }
+          await clearAllClerkCookies();
+          window.location.assign(redirectUrl);
         });
       }}
     >

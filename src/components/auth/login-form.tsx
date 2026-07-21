@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { SignIn, useAuth, useClerk } from "@clerk/nextjs";
 import {
@@ -28,57 +28,79 @@ function continueUrl(callbackUrl: string) {
   return `/auth/continue?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 }
 
+async function clearAllClerkCookies() {
+  clearClerkBrowserCookies();
+  try {
+    await fetch("/api/auth/clear-clerk", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch {
+    // ignore
+  }
+  clearClerkBrowserCookies();
+}
+
 function LoginSignIn() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { signOut } = useClerk();
   const { isLoaded, isSignedIn } = useAuth();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const redirectUrl = continueUrl(callbackUrl);
   const authError = searchParams.get("authError");
-  const sessionBroken = authError === "no_server_session";
+  const sessionBroken =
+    authError === "no_server_session" || authError === "handshake_loop";
   const redirectedRef = useRef(false);
-  const resetRef = useRef(false);
+  const mixedResetRef = useRef(false);
   const [busy, setBusy] = useState(false);
 
-  // Cookies mezcladas o sesión rota → hard reset una vez.
+  // Cookies mezcladas de instancias distintas → hard reset una vez.
   useEffect(() => {
-    if (resetRef.current || !isLoaded) return;
-    const shouldReset = sessionBroken || hasMixedClerkInstanceCookies();
-    if (!shouldReset) return;
-    resetRef.current = true;
+    if (mixedResetRef.current || !isLoaded || sessionBroken) return;
+    if (!hasMixedClerkInstanceCookies()) return;
+    mixedResetRef.current = true;
     void (async () => {
-      clearClerkBrowserCookies();
+      await clearAllClerkCookies();
       try {
         await signOut({ redirectUrl: undefined });
       } catch {
         // ignore
       }
-      clearClerkBrowserCookies();
-      router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      await clearAllClerkCookies();
+      window.location.replace(
+        `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      );
     })();
-  }, [isLoaded, sessionBroken, signOut, router, callbackUrl]);
+  }, [isLoaded, sessionBroken, signOut, callbackUrl]);
 
+  // Tras sign-in: navegación full-page para que el servidor vea cookies nuevas.
   useEffect(() => {
     if (!isLoaded || !isSignedIn || sessionBroken || redirectedRef.current) {
       return;
     }
     redirectedRef.current = true;
-    router.replace(redirectUrl);
-  }, [isLoaded, isSignedIn, sessionBroken, redirectUrl, router]);
+    window.location.assign(redirectUrl);
+  }, [isLoaded, isSignedIn, sessionBroken, redirectUrl]);
 
-  async function hardSignOut() {
+  async function hardReset() {
     setBusy(true);
-    clearClerkBrowserCookies();
     try {
-      await signOut({ redirectUrl: "/login" });
+      await clearAllClerkCookies();
+      try {
+        await signOut({ redirectUrl: undefined });
+      } catch {
+        // ignore
+      }
+      await clearAllClerkCookies();
     } finally {
-      clearClerkBrowserCookies();
-      window.location.assign("/login");
+      window.location.assign(
+        `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      );
     }
   }
 
-  if (!isLoaded || (sessionBroken && !resetRef.current)) {
+  if (!isLoaded) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         Cargando…
@@ -89,11 +111,18 @@ function LoginSignIn() {
   if (sessionBroken) {
     return (
       <div className="flex w-full flex-col items-center gap-4 py-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Reiniciando sesión… Si esto no desaparece, cierra sesión.
+        <p className="text-sm font-medium text-foreground">
+          {authError === "handshake_loop"
+            ? "Clerk entró en un loop de handshake (sesión sin __client_uat)."
+            : "El login del navegador funcionó, pero el servidor no recibió la sesión."}
         </p>
-        <Button type="button" disabled={busy} onClick={() => void hardSignOut()}>
-          {busy ? "Saliendo…" : "Cerrar sesión"}
+        <p className="text-sm text-muted-foreground">
+          Hay que borrar también la cookie HttpOnly{" "}
+          <code className="text-xs">__session</code> (el navegador solo no
+          basta). Luego vuelve a iniciar sesión.
+        </p>
+        <Button type="button" disabled={busy} onClick={() => void hardReset()}>
+          {busy ? "Limpiando…" : "Limpiar sesión y reintentar"}
         </Button>
       </div>
     );
