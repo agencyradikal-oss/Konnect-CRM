@@ -61,16 +61,19 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 
 ### Auth (Clerk)
 
-1. Crea una app en [dashboard.clerk.com](https://dashboard.clerk.com) (**Production** keys en Vercel).
-2. Activa Email + Google OAuth.
-3. Copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY` (misma instancia).
+1. App en [dashboard.clerk.com](https://dashboard.clerk.com) con keys **Production** en Vercel.
+2. Email + Google OAuth.
+3. `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (misma instancia).
 4. Webhook → `https://konnect.kmd.agency/api/webhooks/clerk` → `CLERK_WEBHOOK_SIGNING_SECRET`.
-5. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login` y `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
-6. **No uses** `NEXT_PUBLIC_CLERK_PROXY_URL` salvo que configures Domains → Set proxy en Clerk. El proxy `/__clerk` sin eso deja cliente firmado y servidor sin sesión.
-7. Clerk → **Attack protection**: desactiva Bot/CAPTCHA si da errores Turnstile.
-8. Google OAuth: en Clerk → SSO → Google copia la **Redirect URI** que muestra Clerk (suele ser `https://<instancia>.clerk.accounts.dev/v1/oauth_callback`) y añádela en Google Cloud Console. Si usas proxy custom, sería `https://konnect.kmd.agency/__clerk/v1/oauth_callback`.
-9. Account Portal: paths `/login` y `/signup` (no `accounts.kmd.agency` sin CNAME).
-10. Sesión rota / cookies mezcladas: cierra sesión o borra cookies del sitio. Health: `GET /api/auth/status`.
+5. Esta instancia usa FAPI `clerk.kmd.agency` **sin DNS**. Obligatorio:
+   - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
+   - Clerk Dashboard → **Domains** → **Set proxy URL** = `https://konnect.kmd.agency/__clerk`  
+     (sin este paso: cliente firmado / servidor `auth()` null / loop)
+6. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
+7. Attack protection: desactiva Bot/CAPTCHA (Turnstile falla con proxy).
+8. Google Cloud → redirect URI: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
+9. Alternativa a largo plazo: CNAME `clerk` → Clerk, o quitar el custom domain en Clerk y usar `*.clerk.accounts.dev`.
+10. Health: `GET /api/auth/status`.
 
 ### Usuarios seed
 
@@ -112,7 +115,7 @@ Copia [.env.example](.env.example). Resumen:
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Prod | `/login` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Prod | `/signup` |
-| `NEXT_PUBLIC_CLERK_PROXY_URL` | No | Evitar salvo Domains→Set proxy en Clerk |
+| `NEXT_PUBLIC_CLERK_PROXY_URL` | Sí (prod) | `https://konnect.kmd.agency/__clerk` + Set proxy en Clerk Dashboard |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |
