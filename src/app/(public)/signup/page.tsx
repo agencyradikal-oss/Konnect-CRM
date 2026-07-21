@@ -22,7 +22,8 @@ export default function SignupPage() {
         <CardContent className="flex flex-col items-center">
           <SignUp
             routing="hash"
-            fallbackRedirectUrl="/registrar-empresa"
+            forceRedirectUrl="/auth/continue?callbackUrl=%2Fregistrar-empresa"
+            fallbackRedirectUrl="/auth/continue?callbackUrl=%2Fregistrar-empresa"
             signInUrl="/login"
           />
           <p className="mt-4 text-center text-sm text-muted-foreground">

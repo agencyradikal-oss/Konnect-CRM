@@ -19,14 +19,65 @@ function safeCallbackUrl(raw: string | null) {
   return raw;
 }
 
+/** Post-auth: decide CRM vs registrar-empresa según businessId en servidor. */
+function continueUrl(callbackUrl: string) {
+  return `/auth/continue?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+}
+
 function LoginSignIn() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
-  const redirectUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
+  const redirectUrl = continueUrl(callbackUrl);
+
+  useEffect(() => {
+    // #region agent log
+    fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "11ae6f",
+      },
+      body: JSON.stringify({
+        sessionId: "11ae6f",
+        runId: "post-fix",
+        hypothesisId: "A",
+        location: "login-form.tsx:state",
+        message: "login-auth-state",
+        data: {
+          isLoaded,
+          isSignedIn: Boolean(isSignedIn),
+          hasUserId: Boolean(userId),
+          redirectUrl,
+          callbackRaw: searchParams.get("callbackUrl"),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, [isLoaded, isSignedIn, userId, redirectUrl, searchParams]);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
+      // #region agent log
+      fetch("http://127.0.0.1:7725/ingest/0d89c625-de61-49ad-a5bd-b08d65357c43", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "11ae6f",
+        },
+        body: JSON.stringify({
+          sessionId: "11ae6f",
+          runId: "post-fix",
+          hypothesisId: "B",
+          location: "login-form.tsx:redirect",
+          message: "calling-router-replace",
+          data: { redirectUrl },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       router.replace(redirectUrl);
     }
   }, [isLoaded, isSignedIn, redirectUrl, router]);
