@@ -1,5 +1,9 @@
 import type { Role } from "@prisma/client";
-import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
+import {
+  auth as clerkAuth,
+  clerkClient,
+  currentUser,
+} from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { upsertUserFromClerk } from "@/lib/clerk-sync";
 
@@ -28,7 +32,15 @@ export async function auth(): Promise<AppSession | null> {
   });
 
   if (!dbUser) {
-    const clerkUser = await currentUser();
+    let clerkUser = await currentUser();
+    if (!clerkUser) {
+      try {
+        const client = await clerkClient();
+        clerkUser = await client.users.getUser(userId);
+      } catch {
+        return null;
+      }
+    }
     if (!clerkUser) return null;
     dbUser = await upsertUserFromClerk(
       clerkUser as unknown as Record<string, unknown>,

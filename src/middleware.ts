@@ -12,11 +12,20 @@ import { expireClerkCookiesOnResponse } from "@/lib/clerk-cookies";
 const isAppRoute = createRouteMatcher(["/app(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
+const PROXY_URL = (() => {
+  const raw =
+    process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim() ||
+    (process.env.VERCEL_ENV === "production"
+      ? "https://konnect.kmd.agency/__clerk"
+      : undefined);
+  return raw ? raw.replace(/\/$/, "") : undefined;
+})();
+
 /**
  * frontendApiProxy: FAPI en clerk.kmd.agency sin DNS;
  * el browser habla con /__clerk en konnect.kmd.agency.
- * proxyUrl del handshake se auto-deriva (no pasar proxyUrl aquí:
- * duplicarlo anida redirects handshake→handshake).
+ * proxyUrl también vía env: el JWT iss es el proxy y auth() del servidor
+ * necesita conocerlo para el handshake.
  */
 const clerkHandler = clerkMiddleware(
   async (auth, req) => {
@@ -37,6 +46,7 @@ const clerkHandler = clerkMiddleware(
     frontendApiProxy: {
       enabled: true,
     },
+    ...(PROXY_URL ? { proxyUrl: PROXY_URL } : {}),
     signInUrl: "/login",
     signUpUrl: "/signup",
   },
