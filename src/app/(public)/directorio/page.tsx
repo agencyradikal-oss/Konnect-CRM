@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/prisma";
 import { BusinessCard } from "@/components/directory/business-card";
+import { DirectoryNav } from "@/components/directory/directory-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +56,16 @@ export default async function DirectorioPage({
   const count = businesses.length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold">{t("title")}</h1>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+      <DirectoryNav
+        backHref="/"
+        items={[
+          { label: t("home"), href: "/" },
+          { label: t("title") },
+        ]}
+      />
+
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("title")}</h1>
       <p className="mt-1 text-muted-foreground">
         {t(count === 1 ? "found" : "found_plural", { count })}
       </p>
@@ -67,22 +76,24 @@ export default async function DirectorioPage({
       )}
 
       <form className="mt-6 flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             name="q"
             defaultValue={q}
             placeholder={t("searchPlaceholder")}
-            className="pl-9"
+            className="w-full pl-9"
           />
         </div>
         <Input
           name="ciudad"
           defaultValue={ciudad}
           placeholder={t("cityPlaceholder")}
-          className="sm:w-48"
+          className="w-full sm:w-48"
         />
-        <Button type="submit">{th("search")}</Button>
+        <Button type="submit" className="w-full sm:w-auto">
+          {th("search")}
+        </Button>
       </form>
 
       {businesses.length === 0 ? (

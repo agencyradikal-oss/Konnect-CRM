@@ -48,7 +48,10 @@
     "found_plural": "{count} negocios encontrados",
     "searchPlaceholder": "Buscar negocio o servicio...",
     "cityPlaceholder": "Ciudad (ej. Norcross)",
-    "noResults": "No encontramos negocios con esos filtros."
+    "noResults": "No encontramos negocios con esos filtros.",
+    "home": "Inicio",
+    "back": "Atrás",
+    "breadcrumb": "Ruta de navegación"
   },
   "pricing": {
     "title": "Planes simples para tu negocio",
