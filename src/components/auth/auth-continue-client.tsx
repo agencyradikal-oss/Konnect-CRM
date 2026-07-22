@@ -1,14 +1,20 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { clearClerkBrowserCookies } from "@/lib/clerk-cookies";
 
 type AuthStatus = {
+  clerk: "missing" | "ok";
+  prisma: "skipped" | "ok" | "missing_user" | "error";
   clerkHasUserId: boolean;
-  prisma: { ok: boolean; hasBusinessId?: boolean };
+  prismaOk: boolean;
+  hasBusinessId?: boolean;
 };
+
+const MAX_ATTEMPTS = 8;
+const RETRY_MS = 750;
 
 async function clearAllClerkCookies() {
   clearClerkBrowserCookies();
@@ -33,12 +39,14 @@ async function readStatus(): Promise<AuthStatus> {
 }
 
 /**
- * Tras OAuth/password el cliente Clerk puede firmar antes de que el servidor
- * vea __session. Esperamos el handshake (poll) en vez de fallar al instante.
+ * Tras OAuth/password: espera handshake limitado (no loop infinito).
+ * Solo confía en clerkHasUserId del servidor, no en isSignedIn del cliente.
  */
 export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded } = useAuth();
+  const { signOut } = useClerk();
   const [message, setMessage] = useState("Sincronizando sesión…");
+  const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
@@ -48,18 +56,16 @@ export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
     started.current = true;
 
     let cancelled = false;
-    const startedAt = Date.now();
-    const maxMs = 12_000;
 
     void (async () => {
-      // Si el cliente aún no firmó, dale un momento (OAuth acaba de volver).
-      for (let i = 0; i < 20 && !cancelled; i++) {
+      for (let i = 1; i <= MAX_ATTEMPTS && !cancelled; i++) {
+        setAttempt(i);
         const status = await readStatus();
         if (cancelled) return;
 
-        if (status.clerkHasUserId) {
-          if (!status.prisma.ok) {
-            setMessage("Creando tu cuenta en Konnect…");
+        if (status.clerk === "ok" && status.clerkHasUserId) {
+          if (status.prisma === "missing_user" || !status.prismaOk) {
+            setMessage(`Creando tu cuenta en Konnect… (${i}/${MAX_ATTEMPTS})`);
             try {
               await fetch("/api/auth/sync", {
                 method: "POST",
@@ -67,31 +73,33 @@ export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
                 cache: "no-store",
               });
             } catch {
-              // ignore; re-poll
+              // re-poll
             }
+            await new Promise((r) => setTimeout(r, RETRY_MS));
             continue;
           }
 
-          const dest = status.prisma.hasBusinessId
-            ? callbackUrl
-            : "/registrar-empresa";
-          window.location.replace(dest);
-          return;
+          if (status.prisma === "ok") {
+            const dest = status.hasBusinessId
+              ? callbackUrl
+              : "/registrar-empresa";
+            window.location.replace(dest);
+            return;
+          }
         }
 
-        if (Date.now() - startedAt > maxMs) break;
         setMessage(
-          isSignedIn
-            ? "El navegador ya firmó; esperando cookie de servidor…"
-            : "Esperando sesión de Clerk…",
+          `Esperando sesión en el servidor… (${i}/${MAX_ATTEMPTS})`,
         );
-        await new Promise((r) => setTimeout(r, 500));
+        if (i < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, RETRY_MS));
+        }
       }
 
       if (!cancelled) {
         setFailed(true);
         setMessage(
-          "El servidor no recibió la sesión de Clerk. Limpia cookies e inténtalo de nuevo.",
+          "El servidor no recibió la sesión de Clerk. Limpia la sesión e inténtalo de nuevo.",
         );
       }
     })();
@@ -99,10 +107,16 @@ export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, isSignedIn, callbackUrl]);
+  }, [isLoaded, callbackUrl]);
 
   async function hardReset() {
     setBusy(true);
+    await clearAllClerkCookies();
+    try {
+      await signOut({ redirectUrl: undefined });
+    } catch {
+      // ignore
+    }
     await clearAllClerkCookies();
     window.location.assign(
       `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`,
@@ -112,6 +126,11 @@ export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
   return (
     <div className="mx-auto flex min-h-[40vh] max-w-md flex-col items-center justify-center gap-4 px-4 py-16 text-center">
       <p className="text-sm text-muted-foreground">{message}</p>
+      {!failed && attempt > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Intento {attempt} de {MAX_ATTEMPTS}
+        </p>
+      ) : null}
       {failed ? (
         <Button type="button" disabled={busy} onClick={() => void hardReset()}>
           {busy ? "Limpiando…" : "Limpiar sesión y volver al login"}

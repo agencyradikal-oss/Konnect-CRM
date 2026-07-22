@@ -65,17 +65,16 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 2. Email + Google OAuth.
 3. `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (misma instancia).
 4. Webhook → `https://konnect.kmd.agency/api/webhooks/clerk` → `CLERK_WEBHOOK_SIGNING_SECRET`.
-5. Esta instancia usa FAPI `clerk.kmd.agency` **sin DNS**. Obligatorio:
-   - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
-   - Clerk Dashboard → **Domains** → **Set proxy URL** = `https://konnect.kmd.agency/__clerk`  
-     (sin este paso: cliente firmado / servidor `auth()` null / loop)
-6. Si ves `session-token-but-no-client-uat` o handshake anidado/404: borra cookies con
-   `POST /api/auth/clear-clerk` (incluye HttpOnly `__session`) o el botón en `/login`.
+5. **Sin Frontend API custom** `clerk.kmd.agency` (ese hostname no tiene DNS).  
+   En Clerk → Domains: usa el FAPI default `*.clerk.accounts.dev`.  
+   No configures proxy URL. No uses `NEXT_PUBLIC_CLERK_PROXY_URL`.
+6. Si quedó proxy configurado: `CLERK_SECRET_KEY=… node scripts/clear-clerk-proxy.mjs`  
+   y en Vercel elimina `NEXT_PUBLIC_CLERK_PROXY_URL`.
 7. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
-8. Attack protection: desactiva Bot/CAPTCHA (Turnstile falla con proxy).
-9. Google Cloud → redirect URI: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
-10. Alternativa a largo plazo: CNAME `clerk` → Clerk, o quitar el custom domain en Clerk y usar `*.clerk.accounts.dev`.
-11. Health: `GET /api/auth/status`.
+8. Google Cloud → Authorized redirect URIs: la URL exacta que muestra Clerk  
+   (SSO → Google), típica `https://<instance>.clerk.accounts.dev/v1/oauth_callback`.
+9. Cookies rotas: `POST /api/auth/clear-clerk` o el botón en `/login`.
+10. Health: `GET /api/auth/status` → `{ clerk: "missing"|"ok", prisma: "skipped"|"ok"|… }`.
 
 ### Usuarios seed
 
@@ -117,7 +116,6 @@ Copia [.env.example](.env.example). Resumen:
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Prod | `/login` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Prod | `/signup` |
-| `NEXT_PUBLIC_CLERK_PROXY_URL` | Sí (prod) | `https://konnect.kmd.agency/__clerk` + Set proxy en Clerk Dashboard |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |

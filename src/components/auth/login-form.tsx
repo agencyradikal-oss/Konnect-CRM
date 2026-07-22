@@ -74,13 +74,39 @@ function LoginSignIn() {
     })();
   }, [isLoaded, sessionBroken, signOut, callbackUrl]);
 
-  // Tras sign-in: navegación full-page para que el servidor vea cookies nuevas.
+  // Tras sign-in: solo redirige si el servidor también ve sesión Clerk.
   useEffect(() => {
     if (!isLoaded || !isSignedIn || sessionBroken || redirectedRef.current) {
       return;
     }
-    redirectedRef.current = true;
-    window.location.assign(redirectUrl);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/status", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const status = (await res.json()) as {
+          clerkHasUserId?: boolean;
+          clerk?: string;
+        };
+        if (cancelled) return;
+        if (status.clerkHasUserId || status.clerk === "ok") {
+          redirectedRef.current = true;
+          window.location.assign(redirectUrl);
+          return;
+        }
+      } catch {
+        // fall through to continue page for limited retries
+      }
+      if (!cancelled) {
+        redirectedRef.current = true;
+        window.location.assign(redirectUrl);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isLoaded, isSignedIn, sessionBroken, redirectUrl]);
 
   async function hardReset() {
@@ -112,14 +138,11 @@ function LoginSignIn() {
     return (
       <div className="flex w-full flex-col items-center gap-4 py-6 text-center">
         <p className="text-sm font-medium text-foreground">
-          {authError === "handshake_loop"
-            ? "Clerk entró en un loop de handshake (sesión sin __client_uat)."
-            : "El login del navegador funcionó, pero el servidor no recibió la sesión."}
+          El servidor no validó la sesión de Clerk.
         </p>
         <p className="text-sm text-muted-foreground">
-          Hay que borrar también la cookie HttpOnly{" "}
-          <code className="text-xs">__session</code> (el navegador solo no
-          basta). Luego vuelve a iniciar sesión.
+          Limpia la sesión (incluye cookie HttpOnly{" "}
+          <code className="text-xs">__session</code>) y vuelve a iniciar sesión.
         </p>
         <Button type="button" disabled={busy} onClick={() => void hardReset()}>
           {busy ? "Limpiando…" : "Limpiar sesión y reintentar"}
@@ -131,7 +154,7 @@ function LoginSignIn() {
   if (isSignedIn) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Ya iniciaste sesión. Redirigiendo…
+        Comprobando sesión en el servidor…
       </p>
     );
   }
