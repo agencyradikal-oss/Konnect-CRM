@@ -65,16 +65,16 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 2. Email + Google OAuth.
 3. `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (misma instancia).
 4. Webhook → `https://konnect.kmd.agency/api/webhooks/clerk` → `CLERK_WEBHOOK_SIGNING_SECRET`.
-5. **Sin Frontend API custom** `clerk.kmd.agency` (ese hostname no tiene DNS).  
-   En Clerk → Domains: usa el FAPI default `*.clerk.accounts.dev`.  
-   No configures proxy URL. No uses `NEXT_PUBLIC_CLERK_PROXY_URL`.
-6. Si quedó proxy configurado: `CLERK_SECRET_KEY=… node scripts/clear-clerk-proxy.mjs`  
-   y en Vercel elimina `NEXT_PUBLIC_CLERK_PROXY_URL`.
+5. **Temporal mientras exista FAPI custom sin DNS** (`clerk.konnect.kmd.agency`):
+   - Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
+   - Clerk Domains → **Set proxy** = esa misma URL  
+     (`node scripts/set-clerk-proxy.mjs` con `CLERK_SECRET_KEY`)
+   - Google redirect URI: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
+6. **Objetivo estable:** quitar el Frontend API custom en Clerk y usar
+   `*.clerk.accounts.dev` (entonces elimina proxy env + código de proxy).
 7. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
-8. Google Cloud → Authorized redirect URIs: la URL exacta que muestra Clerk  
-   (SSO → Google), típica `https://<instance>.clerk.accounts.dev/v1/oauth_callback`.
-9. Cookies rotas: `POST /api/auth/clear-clerk` o el botón en `/login`.
-10. Health: `GET /api/auth/status` → `{ clerk: "missing"|"ok", prisma: "skipped"|"ok"|… }`.
+8. Cookies rotas: `POST /api/auth/clear-clerk` o el botón en `/login`.
+9. Health: `GET /api/auth/status` → `{ clerk: "missing"|"ok", prisma: "skipped"|"ok"|… }`.
 
 ### Usuarios seed
 
@@ -116,6 +116,7 @@ Copia [.env.example](.env.example). Resumen:
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Prod | `/login` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Prod | `/signup` |
+| `NEXT_PUBLIC_CLERK_PROXY_URL` | Si FAPI custom sin DNS | `https://konnect.kmd.agency/__clerk` + Set proxy en Clerk |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |
