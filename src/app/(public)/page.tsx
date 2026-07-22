@@ -7,19 +7,42 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
+import { HeroRotatingTitle } from "@/components/public/hero-rotating-title";
 
 export const dynamic = "force-dynamic";
 
 type FeaturedBusiness = Business & { category: Category };
 
+async function loadHomeCities(): Promise<string[]> {
+  try {
+    const rows = await prisma.business.groupBy({
+      by: ["city"],
+      where: {
+        status: "ACTIVE",
+        city: { not: null },
+      },
+      _count: { city: true },
+      orderBy: { _count: { city: "desc" } },
+    });
+    const cities = rows
+      .map((r) => r.city?.trim())
+      .filter((c): c is string => Boolean(c));
+    if (cities.length === 0) return ["Atlanta"];
+    return cities;
+  } catch {
+    return ["Atlanta"];
+  }
+}
+
 export default async function HomePage() {
   const t = await getTranslations("home");
   let categories: Category[] = [];
   let featured: FeaturedBusiness[] = [];
+  let cities: string[] = ["Atlanta"];
   let dbError = false;
 
   try {
-    [categories, featured] = await Promise.all([
+    [categories, featured, cities] = await Promise.all([
       prisma.category.findMany({
         where: { parentId: null },
         orderBy: { nameEs: "asc" },
@@ -30,6 +53,7 @@ export default async function HomePage() {
         take: 6,
         orderBy: { createdAt: "desc" },
       }),
+      loadHomeCities(),
     ]);
   } catch (error) {
     dbError = true;
@@ -40,13 +64,7 @@ export default async function HomePage() {
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-accent/70 via-accent/30 to-background">
         <div className="mx-auto max-w-6xl px-4 py-16 text-center md:py-24">
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-5xl">
-            {t.rich("title", {
-              highlight: (chunks) => (
-                <span className="text-primary">{chunks}</span>
-              ),
-            })}
-          </h1>
+          <HeroRotatingTitle cities={cities} />
           <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
             {t("subtitle")}
           </p>

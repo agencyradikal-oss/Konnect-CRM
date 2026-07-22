@@ -4,5 +4,6 @@
 |------|-----------|
 | [auth-clerk.md](./auth-clerk.md) | Clerk, proxy FAPI, `/api/auth/status`, `/auth/continue`, incidentes |
 | [crm-nav.md](./crm-nav.md) | Menú CRM (sidebar / móvil) y rutas |
+| [home-hero.md](./home-hero.md) | Hero home: copy “en crecimiento” + rotación de ciudades |
 
 Setup general y env: [README](../README.md).

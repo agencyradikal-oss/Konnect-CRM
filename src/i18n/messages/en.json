@@ -29,7 +29,7 @@
     "register": "List your business"
   },
   "home": {
-    "title": "Find Hispanic businesses in <highlight>Atlanta</highlight>",
+    "title": "Find growing businesses in <highlight>{city}</highlight>",
     "subtitle": "Remodeling, restaurants, health, legal and more — service in your language.",
     "searchPlaceholder": "What are you looking for? E.g.: countertops, tacos, lawyer...",
     "search": "Search",

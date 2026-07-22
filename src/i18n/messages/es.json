@@ -29,7 +29,7 @@
     "register": "Registra tu negocio"
   },
   "home": {
-    "title": "Encuentra negocios hispanos en <highlight>Atlanta</highlight>",
+    "title": "Encuentra negocios en crecimiento en <highlight>{city}</highlight>",
     "subtitle": "Remodelación, restaurantes, salud, legal y más — con atención en tu idioma.",
     "searchPlaceholder": "¿Qué buscas? Ej: countertops, tacos, abogado...",
     "search": "Buscar",
