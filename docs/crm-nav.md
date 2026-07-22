@@ -1,0 +1,29 @@
+# CRM — navegación (interno)
+
+## Sidebar
+
+Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/sidebar-nav.tsx).
+
+`MobileNav` reutiliza el mismo componente → desktop y móvil quedan alineados.
+
+| Ítem | Ruta |
+|------|------|
+| Dashboard | `/app/dashboard` |
+| Leads | `/app/leads` |
+| Contactos | `/app/contactos` |
+| Deals | `/app/deals` |
+| Tareas | `/app/tareas` |
+| Analytics | `/app/analytics` |
+| Mi Perfil Público | `/app/perfil` (editor CRM del listing) |
+| Directorio | `/directorio` (directorio público) |
+| Integraciones | `/app/integraciones` |
+| Plan | `/app/plan` |
+
+### Activo (highlight)
+
+- Rutas `/app/*`: `pathname.startsWith(href)` (excepto dashboard, que también acepta `/app`).
+- Rutas fuera del CRM (p. ej. `/directorio`): `pathname === href` o prefijo `href/`, sin marcar activo el resto del CRM.
+
+### Layout
+
+[`src/app/app/layout.tsx`](../src/app/app/layout.tsx): logo del sidebar → `/app/dashboard` (no al directorio).

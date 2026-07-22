@@ -59,6 +59,12 @@ npm run dev            # http://localhost:3000
 
 También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 
+### Docs internas
+
+- [docs/README.md](docs/README.md) — índice
+- [docs/auth-clerk.md](docs/auth-clerk.md) — Clerk / proxy / diagnóstico de sesión
+- [docs/crm-nav.md](docs/crm-nav.md) — menú del CRM
+
 ### Auth (Clerk)
 
 1. App en [dashboard.clerk.com](https://dashboard.clerk.com) con keys **Production** en Vercel.

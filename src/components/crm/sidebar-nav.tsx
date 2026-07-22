@@ -9,6 +9,7 @@ import {
   Handshake,
   CheckSquare,
   Store,
+  BookOpen,
   CreditCard,
   BarChart3,
   Plug,
@@ -24,6 +25,7 @@ const items = [
   { href: "/app/tareas", label: "Tareas", icon: CheckSquare },
   { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/app/perfil", label: "Mi Perfil Público", icon: Store },
+  { href: "/directorio", label: "Directorio", icon: BookOpen },
   { href: "/app/integraciones", label: "Integraciones", icon: Plug },
   { href: "/app/plan", label: "Plan", icon: CreditCard },
 ] as const;
@@ -46,7 +48,9 @@ export function SidebarNav({
         const active =
           href === "/app/dashboard"
             ? pathname === href || pathname === "/app"
-            : pathname.startsWith(href);
+            : href.startsWith("/app/")
+              ? pathname.startsWith(href)
+              : pathname === href || pathname.startsWith(`${href}/`);
 
         return (
           <Link
