@@ -28,6 +28,8 @@ model User {
   /// Si true, no puede iniciar sesión (gestión desde /admin/usuarios).
   disabled     Boolean   @default(false)
   createdAt    DateTime  @default(now())
+  googleConnections GoogleConnection[]
+  appointmentsCreated Appointment[] @relation("AppointmentCreator")
 
   @@index([businessId])
   @@index([role])
@@ -86,6 +88,8 @@ model Business {
   reviews              Review[]
   pageViews            PageView[]
   planCourtesyGrants   PlanCourtesyEntitlement[]
+  googleConnections    GoogleConnection[]
+  appointments         Appointment[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
@@ -168,6 +172,7 @@ model Lead {
   contact    Contact?   @relation(fields: [contactId], references: [id])
   dealId     String?
   deal       Deal?      @relation(fields: [dealId], references: [id])
+  appointments Appointment[]
   createdAt  DateTime   @default(now())
 
   @@index([businessId, status])
@@ -184,6 +189,7 @@ enum LeadSource {
   MANUAL
   IMPORT
   REFERRAL
+  BOOKING
 }
 
 enum LeadStatus {
@@ -206,6 +212,7 @@ model Contact {
   tags       String[]
   deals      Deal[]
   leads      Lead[]
+  appointments Appointment[]
   createdAt  DateTime @default(now())
 
   @@index([businessId])
@@ -225,6 +232,7 @@ model Deal {
   tasks         Task[]
   activities    Activity[]
   leads         Lead[]
+  appointments  Appointment[]
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -289,4 +297,84 @@ model PageView {
 
   @@index([businessId, createdAt])
   @@index([slug, createdAt])
+}
+
+// ============ Google (Calendar / Maps / GBP) ============
+
+/// OAuth Google por usuario+negocio (distinto del login Clerk).
+model GoogleConnection {
+  id                 String    @id @default(cuid())
+  businessId         String
+  business           Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleAccountEmail String?
+  accessTokenEnc     String    @db.Text
+  refreshTokenEnc    String    @db.Text
+  expiresAt          DateTime?
+  scopes             String[]
+  calendarEnabled    Boolean   @default(true)
+  gbpEnabled         Boolean   @default(false)
+  /// Resource name GBP: accounts/xxx/locations/yyy
+  gbpLocationName    String?
+  consentAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+}
+
+enum AppointmentType {
+  MEASURE
+  VISIT
+  CALL
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  DONE
+  CANCELED
+}
+
+/// Cita de medida/visita (verdad en Konnect; espejo en Google Calendar).
+model Appointment {
+  id               String            @id @default(cuid())
+  businessId       String
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contactId        String?
+  contact          Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  dealId           String?
+  deal             Deal?             @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  leadId           String?
+  lead             Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdByUserId  String?
+  createdBy        User?             @relation("AppointmentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  type             AppointmentType   @default(MEASURE)
+  title            String
+  notes            String?           @db.Text
+  status           AppointmentStatus @default(SCHEDULED)
+  startsAt         DateTime
+  endsAt           DateTime
+  timezone         String            @default("America/New_York")
+  address          String?
+  city             String?
+  state            String?           @default("GA")
+  zip              String?
+  lat              Float?
+  lng              Float?
+  googleEventId    String?
+  googleCalendarId String?
+  mapsUrl          String?
+  /// Orden en la ruta del día (menor = primero).
+  routeOrder       Int?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([businessId, startsAt])
+  @@index([businessId, status])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([leadId])
 }

@@ -16,6 +16,8 @@ import {
   DirectoryNav,
   breadcrumbJsonLd,
 } from "@/components/directory/directory-nav";
+import { PublicBookingForm } from "@/components/directory/public-booking-form";
+import { getPlanLimits } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +123,7 @@ export default async function NegocioPage({ params }: Props) {
 
   const gallery = business.gallery.slice(0, 10);
   const hasClickActions = Boolean(business.phone || business.whatsapp);
+  const showBooking = getPlanLimits(business.plan).publicBooking;
 
   return (
     <div className={hasClickActions ? "pb-24 lg:pb-0" : undefined}>
@@ -299,14 +302,18 @@ export default async function NegocioPage({ params }: Props) {
             </section>
           </div>
 
-          <Card className="h-fit lg:sticky lg:top-24">
-            <CardHeader>
-              <CardTitle>Contactar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ContactForm businessSlug={business.slug} />
-            </CardContent>
-          </Card>
+          <div className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle>Contactar</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ContactForm businessSlug={business.slug} />
+              </CardContent>
+            </Card>
+
+            {showBooking && <PublicBookingForm businessSlug={business.slug} />}
+          </div>
         </div>
       </div>
 

@@ -76,6 +76,7 @@ export const terminosEs: LegalDoc = {
       title: "7. Integraciones y API",
       paragraphs: [
         "El acceso a APIs, webhooks o integraciones para desarrolladores puede estar sujeto a claves, cuotas y términos adicionales publicados en /developers. El uso abusivo puede resultar en suspensión.",
+        "Si conectas Google Calendar, Maps o Google Business Profile, aceptas los términos de Google aplicables y autorizas el envío de datos de citas (p. ej. nombre, teléfono, dirección del cliente) a Google según el consentimiento que confirmes en /app/integraciones. Konnect es el sistema de verdad del CRM; Google es un canal operativo. Puedes revocar el acceso desconectando la integración.",
       ],
     },
     {
@@ -180,6 +181,7 @@ export const terminosEn: LegalDoc = {
       title: "7. Integrations and API",
       paragraphs: [
         "API, webhook, or developer access may require keys, quotas, and additional terms at /developers. Abuse may lead to suspension.",
+        "If you connect Google Calendar, Maps, or Google Business Profile, you accept applicable Google terms and authorize sending appointment data (e.g. client name, phone, address) to Google per the consent you confirm in /app/integraciones. Konnect remains the CRM source of truth; Google is an operational channel. You may revoke access by disconnecting the integration.",
       ],
     },
     {

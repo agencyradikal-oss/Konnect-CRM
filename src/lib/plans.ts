@@ -8,6 +8,14 @@ export type PlanLimits = {
   verifiedEligible: boolean;
   featured: boolean;
   analytics: boolean;
+  /** Google Calendar + citas CRM */
+  googleCalendar: boolean;
+  /** Ruta del día / optimizar paradas */
+  dayRoutes: boolean;
+  /** Sync listing → Google Business Profile */
+  googleBusinessProfile: boolean;
+  /** Booking público desde ficha */
+  publicBooking: boolean;
 };
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
@@ -19,6 +27,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     verifiedEligible: false,
     featured: false,
     analytics: false,
+    googleCalendar: false,
+    dayRoutes: false,
+    googleBusinessProfile: false,
+    publicBooking: false,
   },
   PRO: {
     leadsPerMonth: null,
@@ -28,6 +40,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     verifiedEligible: true,
     featured: false,
     analytics: false,
+    googleCalendar: true,
+    dayRoutes: false,
+    googleBusinessProfile: false,
+    publicBooking: false,
   },
   PREMIUM: {
     leadsPerMonth: null,
@@ -37,6 +53,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     verifiedEligible: true,
     featured: true,
     analytics: true,
+    googleCalendar: true,
+    dayRoutes: true,
+    googleBusinessProfile: true,
+    publicBooking: true,
   },
 };
 
@@ -72,6 +92,7 @@ export const PLAN_CATALOG = [
       "CRM ilimitado",
       "Importar CSV",
       "Hasta 3 usuarios",
+      "Google Calendar (citas)",
     ],
   },
   {
@@ -85,6 +106,7 @@ export const PLAN_CATALOG = [
       "Badge Destacado (prioridad en búsqueda)",
       "Analytics del perfil",
       "Hasta 10 usuarios",
+      "Ruta del día + Business Profile + booking",
     ],
   },
 ] as const;

@@ -65,6 +65,7 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 - [docs/auth-clerk.md](docs/auth-clerk.md) — Clerk / proxy / diagnóstico de sesión
 - [docs/crm-nav.md](docs/crm-nav.md) — menú del CRM
 - [docs/directory-nav.md](docs/directory-nav.md) — breadcrumbs y responsive del directorio público
+- [docs/google-integrations.md](docs/google-integrations.md) — Google Calendar / Maps / GBP
 - [docs/home-hero.md](docs/home-hero.md) — hero home
 - [docs/plan-courtesy.md](docs/plan-courtesy.md) — Premium lifetime socios
 

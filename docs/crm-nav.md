@@ -12,6 +12,8 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 | Leads | `/app/leads` |
 | Contactos | `/app/contactos` |
 | Deals | `/app/deals` |
+| Citas | `/app/citas` |
+| Ruta del día | `/app/ruta` (Premium) |
 | Tareas | `/app/tareas` |
 | Analytics | `/app/analytics` |
 | Mi Perfil Público | `/app/perfil` (editor CRM del listing) |
