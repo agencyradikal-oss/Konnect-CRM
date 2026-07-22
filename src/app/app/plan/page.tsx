@@ -28,12 +28,14 @@ export default async function PlanPage({
     where: { id: businessId },
     select: {
       plan: true,
+      planCourtesy: true,
       stripeCustomerId: true,
       stripeSubscriptionId: true,
     },
   });
 
   const stripeReady = isStripeConfigured();
+  const courtesy = business.planCourtesy;
   const rank = { FREE: 0, PRO: 1, PREMIUM: 2 } as const;
 
   return (
@@ -44,10 +46,23 @@ export default async function PlanPage({
           <p className="text-muted-foreground">
             Tu plan actual:{" "}
             <Badge className="ml-1">{business.plan}</Badge>
+            {courtesy && (
+              <Badge variant="secondary" className="ml-2">
+                Cortesía lifetime
+              </Badge>
+            )}
           </p>
         </div>
-        {business.stripeCustomerId && <ManageBillingButton />}
+        {!courtesy && business.stripeCustomerId && <ManageBillingButton />}
       </div>
+
+      {courtesy && (
+        <div className="rounded-lg border border-primary/30 bg-accent/40 px-4 py-3 text-sm">
+          Eres socio de Konnect™ con <strong>Premium de cortesía</strong>{" "}
+          (lifetime). No necesitas suscripción de pago; Stripe no aplica a tu
+          cuenta.
+        </div>
+      )}
 
       {params.success === "1" && (
         <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
@@ -81,7 +96,9 @@ export default async function PlanPage({
                   {isCurrent && <Badge>Actual</Badge>}
                 </CardTitle>
                 <CardDescription className="text-2xl font-bold text-foreground">
-                  {plan.priceLabel}
+                  {courtesy && plan.id === "PREMIUM"
+                    ? "Cortesía"
+                    : plan.priceLabel}
                 </CardDescription>
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
               </CardHeader>
@@ -95,7 +112,17 @@ export default async function PlanPage({
                   ))}
                 </ul>
 
-                {plan.id === "FREE" ? (
+                {courtesy ? (
+                  isCurrent ? (
+                    <Badge variant="outline" className="justify-center py-2">
+                      Incluido (socio)
+                    </Badge>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground">
+                      Tu plan de socio es Premium lifetime.
+                    </p>
+                  )
+                ) : plan.id === "FREE" ? (
                   isCurrent ? (
                     <Badge variant="outline" className="justify-center py-2">
                       Plan actual
@@ -130,7 +157,7 @@ export default async function PlanPage({
         })}
       </div>
 
-      {!stripeReady && (
+      {!stripeReady && !courtesy && (
         <p className="text-sm text-muted-foreground">
           Configura <code>STRIPE_SECRET_KEY</code>,{" "}
           <code>STRIPE_PRICE_PRO</code>, <code>STRIPE_PRICE_PREMIUM</code> y{" "}

@@ -68,6 +68,8 @@ model Business {
   verified             Boolean        @default(false)
   featured             Boolean        @default(false) // solo Premium
   plan                 Plan           @default(FREE)
+  /// Premium lifetime de cortesía (socio). Stripe no puede degradar el plan.
+  planCourtesy         Boolean        @default(false)
   stripeCustomerId     String?
   stripeSubscriptionId String?
   /// Webhook de salida (Zapier/Make → Square/QuickBooks, etc.)
@@ -83,12 +85,31 @@ model Business {
   activities           Activity[]
   reviews              Review[]
   pageViews            PageView[]
+  planCourtesyGrants   PlanCourtesyEntitlement[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
   @@index([city, status])
   @@index([plan, featured])
   @@index([stripeCustomerId])
+  @@index([planCourtesy])
+}
+
+/// Emails de socios con Premium lifetime de cortesía (pendiente o aplicado).
+model PlanCourtesyEntitlement {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  plan       Plan      @default(PREMIUM)
+  note       String?
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
+  grantedAt  DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([businessId])
+  @@index([revokedAt])
 }
 
 enum Plan {

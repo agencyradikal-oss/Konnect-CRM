@@ -176,5 +176,15 @@ export async function upsertUserFromClerk(
     disabled: user.disabled,
   });
 
+  if (user.businessId) {
+    const { applyCourtesyForUserBusiness } = await import("@/lib/plan-courtesy");
+    await applyCourtesyForUserBusiness(prisma, {
+      email,
+      businessId: user.businessId,
+    }).catch((err) =>
+      console.error("[clerk-sync] plan courtesy:", err),
+    );
+  }
+
   return user;
 }

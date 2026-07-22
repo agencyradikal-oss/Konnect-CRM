@@ -31,6 +31,12 @@ export async function startCheckout(input: unknown) {
   }
 
   const { businessId, business, session } = await getCurrentBusiness();
+  if (business.planCourtesy) {
+    return {
+      ok: false as const,
+      error: "Tu negocio tiene Premium de cortesía (socio). No necesitas pagar.",
+    };
+  }
   const stripe = getStripe();
   const base = getAppBaseUrl();
 
@@ -79,6 +85,12 @@ export async function openBillingPortal() {
   }
 
   const { business } = await getCurrentBusiness();
+  if (business.planCourtesy) {
+    return {
+      ok: false as const,
+      error: "Tu plan es de cortesía lifetime; no hay portal de facturación.",
+    };
+  }
   if (!business.stripeCustomerId) {
     return {
       ok: false as const,

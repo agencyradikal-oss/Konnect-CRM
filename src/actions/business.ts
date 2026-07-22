@@ -158,6 +158,19 @@ export async function registerBusinessFull(formData: FormData) {
       });
     }
 
+    const ownerEmail = session.user.email;
+    if (ownerEmail) {
+      const { applyCourtesyForUserBusiness } = await import(
+        "@/lib/plan-courtesy"
+      );
+      await applyCourtesyForUserBusiness(prisma, {
+        email: ownerEmail,
+        businessId: business.id,
+      }).catch((err) =>
+        console.error("[registerBusinessFull] plan courtesy:", err),
+      );
+    }
+
     return { ok: true as const, slug: business.slug };
   } catch (error) {
     console.error("[registerBusinessFull]", error);

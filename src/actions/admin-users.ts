@@ -87,6 +87,24 @@ export async function assignUserBusiness(input: unknown) {
   });
   await syncClerkForUser(data.userId);
 
+  if (data.businessId) {
+    const user = await prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { email: true },
+    });
+    if (user?.email) {
+      const { applyCourtesyForUserBusiness } = await import(
+        "@/lib/plan-courtesy"
+      );
+      await applyCourtesyForUserBusiness(prisma, {
+        email: user.email,
+        businessId: data.businessId,
+      }).catch((err) =>
+        console.error("[assignUserBusiness] plan courtesy:", err),
+      );
+    }
+  }
+
   revalidateAdminUsers();
   return { ok: true as const };
 }
@@ -222,6 +240,18 @@ export async function createAdminUser(input: unknown) {
     businessId: user.businessId,
     disabled: false,
   });
+
+  if (businessId) {
+    const { applyCourtesyForUserBusiness } = await import(
+      "@/lib/plan-courtesy"
+    );
+    await applyCourtesyForUserBusiness(prisma, {
+      email,
+      businessId,
+    }).catch((err) =>
+      console.error("[createAdminUser] plan courtesy:", err),
+    );
+  }
 
   revalidateAdminUsers();
   return { ok: true as const };

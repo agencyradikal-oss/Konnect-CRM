@@ -10,28 +10,59 @@ export async function applyPlanToBusiness(
   extras?: {
     stripeCustomerId?: string | null;
     stripeSubscriptionId?: string | null;
+    /** Otorga/renueva cortesía lifetime (Premium). */
+    forceCourtesy?: boolean;
+    /** Quita el flag de cortesía (revocación). */
+    clearCourtesy?: boolean;
   },
 ) {
-  const limits = getPlanLimits(plan);
+  const current = await db.business.findUnique({
+    where: { id: businessId },
+    select: { planCourtesy: true, plan: true },
+  });
+
+  // Socios con cortesía: Stripe no puede degradar el plan.
+  if (
+    current?.planCourtesy &&
+    !extras?.forceCourtesy &&
+    !extras?.clearCourtesy
+  ) {
+    const rank = { FREE: 0, PRO: 1, PREMIUM: 2 } as const;
+    if (rank[plan] < rank.PREMIUM) {
+      await db.business.update({
+        where: { id: businessId },
+        data: {
+          ...(extras?.stripeCustomerId !== undefined && {
+            stripeCustomerId: extras.stripeCustomerId,
+          }),
+          ...(extras?.stripeSubscriptionId !== undefined && {
+            stripeSubscriptionId: extras.stripeSubscriptionId,
+          }),
+        },
+      });
+      return { skipped: true as const, reason: "plan_courtesy" as const };
+    }
+  }
+
+  const effectivePlan: Plan = extras?.forceCourtesy ? "PREMIUM" : plan;
+  const limits = getPlanLimits(effectivePlan);
 
   await db.business.update({
     where: { id: businessId },
     data: {
-      plan,
+      plan: effectivePlan,
       featured: limits.featured,
+      ...(extras?.forceCourtesy && { planCourtesy: true }),
+      ...(extras?.clearCourtesy && { planCourtesy: false }),
       ...(extras?.stripeCustomerId !== undefined && {
         stripeCustomerId: extras.stripeCustomerId,
       }),
       ...(extras?.stripeSubscriptionId !== undefined && {
         stripeSubscriptionId: extras.stripeSubscriptionId,
       }),
-      // Si baja de Premium, quitar Destacado (featured ya false).
-      // Si baja de Pro, quitar verified eligibility — no auto-unverify
-      // (la revisión admin puede haberlo verificado; se mantiene).
     },
   });
 
-  // Recortar galería si excede el nuevo límite
   const biz = await db.business.findUnique({
     where: { id: businessId },
     select: { gallery: true },
@@ -42,6 +73,8 @@ export async function applyPlanToBusiness(
       data: { gallery: biz.gallery.slice(0, limits.galleryPhotos) },
     });
   }
+
+  return { skipped: false as const };
 }
 
 export function planFromSubscription(subscription: {
