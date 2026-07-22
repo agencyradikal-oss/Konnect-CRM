@@ -27,3 +27,9 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 ### Layout
 
 [`src/app/app/layout.tsx`](../src/app/app/layout.tsx): logo del sidebar → `/app/dashboard` (no al directorio).
+
+## Directorio público (imágenes)
+
+- Listado [`BusinessCard`](../src/components/directory/business-card.tsx): portada + logo.
+- Ficha [`/negocio/[slug]`](../src/app/(public)/negocio/[slug]/page.tsx): portada full-bleed, logo junto al nombre, galería hasta **10** fotos (`gallery.slice(0, 10)`).
+- Límites de subida por plan: Free 1, Pro/Premium 10 (`lib/plans.ts`).

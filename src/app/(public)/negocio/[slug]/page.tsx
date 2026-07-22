@@ -91,6 +91,9 @@ export default async function NegocioPage({ params }: Props) {
           longitude: business.lng,
         },
       }),
+    ...(business.logoUrl || business.coverUrl
+      ? { image: business.logoUrl || business.coverUrl || undefined }
+      : {}),
     ...(avgRating && {
       aggregateRating: {
         "@type": "AggregateRating",
@@ -100,8 +103,24 @@ export default async function NegocioPage({ params }: Props) {
     }),
   };
 
+  const gallery = business.gallery.slice(0, 10);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div>
+      {business.coverUrl ? (
+        <div className="relative h-48 w-full overflow-hidden bg-muted sm:h-64 md:h-72">
+          <Image
+            src={business.coverUrl}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
+
+      <div className="mx-auto max-w-6xl px-4 py-10">
       <ProfileViewTracker slug={business.slug} />
       <script
         type="application/ld+json"
@@ -110,7 +129,19 @@ export default async function NegocioPage({ params }: Props) {
 
       {/* Encabezado */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
+        <div className="flex gap-4">
+          {business.logoUrl ? (
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-xl border bg-background shadow-sm sm:size-24">
+              <Image
+                src={business.logoUrl}
+                alt={`Logo de ${business.name}`}
+                fill
+                sizes="96px"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
+          <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold">{business.name}</h1>
             {business.verified && (
@@ -151,6 +182,7 @@ export default async function NegocioPage({ params }: Props) {
               <Globe className="size-4" /> {business.website}
             </a>
           )}
+          </div>
         </div>
 
         <div className="w-full md:w-80">
@@ -174,20 +206,20 @@ export default async function NegocioPage({ params }: Props) {
             </section>
           )}
 
-          {business.gallery.length > 0 && (
+          {gallery.length > 0 && (
             <section>
               <h2 className="text-xl font-semibold">Galería</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {business.gallery.map((url) => (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {gallery.map((url, i) => (
                   <div
                     key={url}
                     className="relative aspect-square overflow-hidden rounded-lg border"
                   >
                     <Image
                       src={url}
-                      alt={`${business.name} — galería`}
+                      alt={`${business.name} — foto ${i + 1}`}
                       fill
-                      sizes="(max-width:640px) 50vw, 200px"
+                      sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 200px"
                       className="object-cover"
                     />
                   </div>
@@ -237,6 +269,7 @@ export default async function NegocioPage({ params }: Props) {
             <ContactForm businessSlug={business.slug} />
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
