@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { updateLeadStatus, convertLead } from "@/actions/crm";
+import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
 import type { LeadStatus } from "@prisma/client";
 
 const statuses: { value: LeadStatus; label: string }[] = [
@@ -40,6 +41,7 @@ export function LeadRowActions({
 }) {
   const [pending, startTransition] = useTransition();
   const [convertOpen, setConvertOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   function runStatus(next: LeadStatus) {
     startTransition(async () => {
@@ -95,8 +97,20 @@ export function LeadRowActions({
               </DropdownMenuItem>
             </>
           )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setScheduleOpen(true)}>
+            Agendar cita…
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ScheduleAppointmentDialog
+        defaultTitle={`Medida — ${leadName}`}
+        leadId={leadId}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        showTrigger={false}
+      />
 
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
         <DialogContent className="sm:max-w-md">

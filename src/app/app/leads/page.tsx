@@ -32,6 +32,7 @@ const sources = new Set<string>([
   "MANUAL",
   "IMPORT",
   "REFERRAL",
+  "BOOKING",
 ]);
 
 const statuses = new Set<string>([

@@ -26,6 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
 import {
   Dialog,
   DialogContent,
@@ -366,6 +367,13 @@ export function ContactsManager({
               saveContact(e.currentTarget);
             }}
           >
+            {selected && (
+              <ScheduleAppointmentDialog
+                defaultTitle={`Medida — ${selected.name}`}
+                contactId={selected.id}
+                triggerLabel="Agendar medida / visita"
+              />
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="name">Nombre *</Label>
               <Input

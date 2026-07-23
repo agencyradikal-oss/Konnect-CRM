@@ -7,35 +7,15 @@ import { assertLeadFormRateLimit } from "@/lib/rate-limit";
 import { sendNewLeadEmail } from "@/lib/email";
 import { sanitizeUserText } from "@/lib/sanitize";
 import { dispatchLeadCreatedWebhook } from "@/lib/outbound-webhook";
+import {
+  bridgeFormSourceSchema,
+  bridgeLeadDataSchema,
+} from "@/lib/bridge-schemas";
 
 /**
  * El Puente: toda interacción del perfil público se registra
  * como Lead en el CRM del negocio, con source tracking.
  */
-
-const leadDataSchema = z
-  .object({
-    name: z.string().min(1, "Tu nombre es requerido").max(120),
-    email: z.string().email("Email inválido").optional().or(z.literal("")),
-    phone: z.string().max(30).optional().or(z.literal("")),
-    message: z.string().max(2000).optional().or(z.literal("")),
-  })
-  .superRefine((val, ctx) => {
-    const hasEmail = Boolean(val.email?.trim());
-    const hasPhone = Boolean(val.phone?.trim());
-    if (!hasEmail && !hasPhone) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Indica un email o un teléfono.",
-        path: ["email"],
-      });
-    }
-  });
-
-const formSourceSchema = z.enum([
-  LeadSource.DIRECTORY_FORM,
-  LeadSource.QUOTE_REQUEST,
-]);
 
 export async function createLeadFromDirectory(
   businessSlug: string,
@@ -43,8 +23,8 @@ export async function createLeadFromDirectory(
   source: unknown,
 ) {
   const slug = z.string().min(1).parse(businessSlug);
-  const leadSource = formSourceSchema.parse(source);
-  const parsed = leadDataSchema.safeParse(data);
+  const leadSource = bridgeFormSourceSchema.parse(source);
+  const parsed = bridgeLeadDataSchema.safeParse(data);
   if (!parsed.success) {
     return {
       ok: false as const,

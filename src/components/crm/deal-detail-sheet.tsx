@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Phone, StickyNote, Plus } from "lucide-react";
 import {
@@ -22,6 +23,7 @@ import {
   toggleTask,
   updateDeal,
 } from "@/actions/crm";
+import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
 import type { DealCardData } from "@/lib/deals";
 import { formatMoney } from "@/lib/date-range";
 import { cn } from "@/lib/utils";
@@ -113,6 +115,13 @@ export function DealDetailSheet({
         </SheetHeader>
 
         <div className="space-y-6 px-4 pb-8">
+          <ScheduleAppointmentDialog
+            defaultTitle={`Medida — ${deal.contact?.name ?? deal.title}`}
+            dealId={deal.id}
+            contactId={deal.contact?.id}
+            triggerLabel="Agendar medida / visita"
+          />
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Valor ($)</Label>

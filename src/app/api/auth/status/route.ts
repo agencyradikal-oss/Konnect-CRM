@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { auth } from "@/lib/auth";
+import {
+  authStatusMissingUser,
+  authStatusNoClerk,
+  authStatusOk,
+  authStatusPrismaError,
+} from "@/lib/auth-status";
 
 export const runtime = "nodejs";
-
-type ClerkState = "missing" | "ok";
-type PrismaState = "skipped" | "ok" | "missing_user" | "error";
 
 /**
  * Estado mínimo Clerk vs Prisma (sin secretos ni PII).
@@ -15,51 +18,31 @@ export async function GET() {
   try {
     const { userId } = await clerkAuth();
     if (!userId) {
-      return NextResponse.json({
-        clerk: "missing" as ClerkState,
-        prisma: "skipped" as PrismaState,
-        clerkHasUserId: false,
-        prismaOk: false,
-      });
+      return NextResponse.json(authStatusNoClerk());
     }
 
     try {
       const session = await auth();
       if (session?.user) {
-        return NextResponse.json({
-          clerk: "ok" as ClerkState,
-          prisma: "ok" as PrismaState,
-          clerkHasUserId: true,
-          prismaOk: true,
-          role: session.user.role,
-          hasBusinessId: Boolean(session.user.businessId),
-        });
+        return NextResponse.json(
+          authStatusOk({
+            role: session.user.role,
+            hasBusinessId: Boolean(session.user.businessId),
+          }),
+        );
       }
-      return NextResponse.json({
-        clerk: "ok" as ClerkState,
-        prisma: "missing_user" as PrismaState,
-        clerkHasUserId: true,
-        prismaOk: false,
-      });
+      return NextResponse.json(authStatusMissingUser());
     } catch (e) {
       return NextResponse.json(
-        {
-          clerk: "ok" as ClerkState,
-          prisma: "error" as PrismaState,
-          clerkHasUserId: true,
-          prismaOk: false,
-          error: e instanceof Error ? e.message : "unknown",
-        },
+        authStatusPrismaError(e instanceof Error ? e.message : "unknown"),
         { status: 500 },
       );
     }
   } catch (e) {
     return NextResponse.json(
       {
-        clerk: "missing" as ClerkState,
-        prisma: "error" as PrismaState,
-        clerkHasUserId: false,
-        prismaOk: false,
+        ...authStatusNoClerk(),
+        prisma: "error" as const,
         error: e instanceof Error ? e.message : "unknown",
       },
       { status: 500 },

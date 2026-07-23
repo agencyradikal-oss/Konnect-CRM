@@ -69,17 +69,18 @@ export const developersEs = {
       id: "puente",
       title: "El Puente (entrada pública)",
       body: [
-        "Sources que disparan lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP (también MANUAL / IMPORT / REFERRAL desde el CRM).",
+        "Sources que disparan lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP | BOOKING (también MANUAL / IMPORT / REFERRAL desde el CRM).",
         "No necesitas API para capturar leads del perfil público: los formularios y clicks ya crean el lead y, si hay webhook, lo reenvían.",
       ],
     },
     {
       id: "auth",
-      title: "Autenticación API (próximamente)",
+      title: "Autenticación API",
       body: [
-        "Los partners usarán API keys por negocio (Authorization: Bearer kn_live_…). Nunca embeds keys en frontends públicos.",
+        "Crea keys en /app/integraciones (dueño). Header: Authorization: Bearer kn_live_…. La key completa solo se muestra al crearla; se guarda hasheada (SHA-256).",
+        "Endpoint actual: GET /api/v1/leads?status=&source=&limit=50 (máx 100). Responde { data: Lead[] }.",
       ],
-      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
+      code: `curl -X GET "${SITE_URL}/api/v1/leads?limit=20" \\
   -H "Authorization: Bearer kn_live_xxx" \\
   -H "Accept: application/json"`,
       codeLang: "bash",
@@ -170,17 +171,18 @@ export const developersEn = {
       id: "puente",
       title: "El Puente (public intake)",
       body: [
-        "Sources that fire lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP (also MANUAL / IMPORT / REFERRAL from the CRM).",
+        "Sources that fire lead.created: DIRECTORY_FORM | QUOTE_REQUEST | CLICK_CALL | CLICK_WHATSAPP | BOOKING (also MANUAL / IMPORT / REFERRAL from the CRM).",
         "You do not need an API to capture public-profile leads — forms and clicks create the lead and forward it when a webhook is configured.",
       ],
     },
     {
       id: "auth",
-      title: "API authentication (coming soon)",
+      title: "API authentication",
       body: [
-        "Partners will use per-business API keys (Authorization: Bearer kn_live_…). Never embed keys in public frontends.",
+        "Create keys in /app/integraciones (owner). Header: Authorization: Bearer kn_live_…. The full key is shown only once; we store a SHA-256 hash.",
+        "Current endpoint: GET /api/v1/leads?status=&source=&limit=50 (max 100). Returns { data: Lead[] }.",
       ],
-      code: `curl -X GET "${SITE_URL}/api/v1/leads" \\
+      code: `curl -X GET "${SITE_URL}/api/v1/leads?limit=20" \\
   -H "Authorization: Bearer kn_live_xxx" \\
   -H "Accept: application/json"`,
       codeLang: "bash",

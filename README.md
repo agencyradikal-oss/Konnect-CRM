@@ -66,8 +66,11 @@ También puedes usar `bun` si lo prefieres (`bun install`, `bun run dev`, etc.).
 - [docs/crm-nav.md](docs/crm-nav.md) — menú del CRM
 - [docs/directory-nav.md](docs/directory-nav.md) — breadcrumbs y responsive del directorio público
 - [docs/google-integrations.md](docs/google-integrations.md) — Google Calendar / Maps / GBP
+- [docs/api-keys.md](docs/api-keys.md) — API keys partners
 - [docs/home-hero.md](docs/home-hero.md) — hero home
 - [docs/plan-courtesy.md](docs/plan-courtesy.md) — Premium lifetime socios
+
+Smoke tests: `npm test` (Vitest — auth status, El Puente schema, webhook HMAC, API keys).
 
 Las fichas públicas muestran `logoUrl`, `coverUrl` y hasta 10 fotos de `gallery` en `/directorio` y `/negocio/[slug]`.
 

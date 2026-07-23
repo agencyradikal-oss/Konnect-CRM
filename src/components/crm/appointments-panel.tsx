@@ -47,9 +47,17 @@ const TYPE_LABEL: Record<string, string> = {
 export function AppointmentsPanel({
   appointments,
   canSyncCalendar,
+  prefill,
 }: {
   appointments: AppointmentRow[];
   canSyncCalendar: boolean;
+  prefill?: {
+    title?: string;
+    leadId?: string;
+    dealId?: string;
+    contactId?: string;
+    notes?: string;
+  };
 }) {
   const [pending, startTransition] = useTransition();
   const [type, setType] = useState("MEASURE");
@@ -71,12 +79,20 @@ export function AppointmentsPanel({
         address: String(fd.get("address") ?? "") || undefined,
         city: String(fd.get("city") ?? "") || undefined,
         zip: String(fd.get("zip") ?? "") || undefined,
+        leadId: String(fd.get("leadId") ?? "") || null,
+        dealId: String(fd.get("dealId") ?? "") || null,
+        contactId: String(fd.get("contactId") ?? "") || null,
         syncCalendar: canSyncCalendar,
       });
       if (res.ok) toast.success("Cita creada.");
       else toast.error(res.error ?? "No se pudo crear.");
     });
   }
+
+  const linked =
+    prefill?.leadId || prefill?.dealId || prefill?.contactId
+      ? true
+      : false;
 
   return (
     <div className="space-y-6">
@@ -91,16 +107,27 @@ export function AppointmentsPanel({
             {canSyncCalendar
               ? " y la sincroniza con Google Calendar si está conectado."
               : ". Actualiza a Pro/Premium para sync con Calendar."}
+            {linked && " Vinculada al lead/deal de origen."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={onCreate} className="grid gap-3 sm:grid-cols-2">
+            {prefill?.leadId && (
+              <input type="hidden" name="leadId" value={prefill.leadId} />
+            )}
+            {prefill?.dealId && (
+              <input type="hidden" name="dealId" value={prefill.dealId} />
+            )}
+            {prefill?.contactId && (
+              <input type="hidden" name="contactId" value={prefill.contactId} />
+            )}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="title">Título</Label>
               <Input
                 id="title"
                 name="title"
                 required
+                defaultValue={prefill?.title}
                 placeholder="Medida — Cliente García"
                 disabled={pending}
               />
@@ -165,7 +192,13 @@ export function AppointmentsPanel({
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="notes">Notas</Label>
-              <Textarea id="notes" name="notes" rows={2} disabled={pending} />
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                defaultValue={prefill?.notes}
+                disabled={pending}
+              />
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={pending}>

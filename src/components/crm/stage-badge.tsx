@@ -60,6 +60,7 @@ export const leadSourceLabels: Record<LeadSource, string> = {
   MANUAL: "Manual",
   IMPORT: "Importado",
   REFERRAL: "Referido",
+  BOOKING: "Reserva",
 };
 
 const sourceStyles: Record<LeadSource, string> = {
@@ -70,6 +71,7 @@ const sourceStyles: Record<LeadSource, string> = {
   MANUAL: "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300",
   IMPORT: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
   REFERRAL: "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300",
+  BOOKING: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300",
 };
 
 export function LeadSourceBadge({ source }: { source: LeadSource }) {

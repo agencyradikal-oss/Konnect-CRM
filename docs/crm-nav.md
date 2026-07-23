@@ -18,8 +18,19 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 | Analytics | `/app/analytics` |
 | Mi Perfil Público | `/app/perfil` (editor CRM del listing) |
 | Directorio | `/directorio` (directorio público) |
-| Integraciones | `/app/integraciones` |
+| Integraciones | `/app/integraciones` (Stripe, Google, API keys, webhooks) |
 | Plan | `/app/plan` |
+
+### Citas desde Lead / Deal
+
+- Leads: menú ⋮ → **Agendar cita…** ([`lead-row-actions.tsx`](../src/components/crm/lead-row-actions.tsx))
+- Deals: sheet del deal → **Agendar medida / visita** ([`deal-detail-sheet.tsx`](../src/components/crm/deal-detail-sheet.tsx))
+- Contactos: sheet del contacto → **Agendar medida / visita** ([`contacts-manager.tsx`](../src/components/crm/contacts-manager.tsx))
+- Dialog compartido: [`schedule-appointment-dialog.tsx`](../src/components/crm/schedule-appointment-dialog.tsx)
+
+### API partners
+
+Ver [api-keys.md](./api-keys.md). Smoke tests: `npm test`.
 
 ### Activo (highlight)
 

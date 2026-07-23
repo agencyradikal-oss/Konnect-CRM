@@ -8,5 +8,6 @@
 | [plan-courtesy.md](./plan-courtesy.md) | Premium lifetime de cortesía para socios (`/admin/socios`) |
 | [directory-nav.md](./directory-nav.md) | Directorio público: breadcrumbs, atrás, CTAs sticky móvil |
 | [google-integrations.md](./google-integrations.md) | Google Calendar / Maps / Business Profile + citas |
+| [api-keys.md](./api-keys.md) | API keys partners `kn_live_…` + `GET /api/v1/leads` |
 
 Setup general y env: [README](../README.md).

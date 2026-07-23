@@ -12,6 +12,8 @@ Konnect es la **fuente de verdad** del CRM. Google es canal operativo (calendari
 | Sync listing → GBP | Premium | Integraciones |
 | Booking público en ficha | Premium | `/negocio/[slug]` |
 
+- Agendar desde Lead/Deal: menú en leads y botón en sheet de deal → `/app/citas?leadId|dealId=…` (prefill).
+
 ## Setup Google Cloud
 
 1. Proyecto en Google Cloud → OAuth consent screen (External / Internal).

@@ -90,6 +90,7 @@ model Business {
   planCourtesyGrants   PlanCourtesyEntitlement[]
   googleConnections    GoogleConnection[]
   appointments         Appointment[]
+  apiKeys              BusinessApiKey[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
@@ -97,6 +98,25 @@ model Business {
   @@index([plan, featured])
   @@index([stripeCustomerId])
   @@index([planCourtesy])
+}
+
+/// API keys de partners (Authorization: Bearer kn_live_…).
+model BusinessApiKey {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String
+  /// Prefijo visible (ej. kn_live_ab12)
+  prefix     String
+  /// SHA-256 hex del secret completo
+  keyHash    String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([businessId])
+  @@index([keyHash])
+  @@index([revokedAt])
 }
 
 /// Emails de socios con Premium lifetime de cortesía (pendiente o aplicado).
