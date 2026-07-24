@@ -10,36 +10,25 @@ Documento operativo para el equipo. No sustituye la sección Auth del [README](.
 - UI ES: `localization={esES}` en `KonnectClerkProvider`.
 
 ```
-Browser → ClerkJS → FAPI
-                ↘ (si FAPI custom sin DNS)
-                  /__clerk proxy (middleware frontendApiProxy)
+Browser → ClerkJS → FAPI (*.clerk.accounts.dev)  [proxy omitido]
 Server  → clerkMiddleware / auth() → Prisma User
 ```
 
 ## Estado del dominio FAPI (crítico)
 
-La publishable key de Production apunta a un **Frontend API custom** (`clerk.konnect.kmd.agency` o `clerk.kmd.agency`) **sin DNS**.
+**Proxy omitido en código** (middleware / `ClerkProvider` sin `proxyUrl` ni `frontendApiProxy`). Auth va directo a FAPI default.
 
-Mientras eso sea así:
-
-| Pieza | Valor |
-|-------|--------|
-| `NEXT_PUBLIC_CLERK_PROXY_URL` (Vercel) | `https://konnect.kmd.agency/__clerk` |
-| Clerk Dashboard → Domains → Set proxy | misma URL |
-| Google OAuth redirect URI | `https://konnect.kmd.agency/__clerk/v1/oauth_callback` |
-| Código | `frontendApiProxy` + `proxyUrl` en middleware y `ClerkProvider` |
-
-Sin proxy: `ERR_NAME_NOT_RESOLVED` al cargar `clerk.browser.js`.
+Si la publishable key de Production aún apunta a un **Frontend API custom** (`clerk.konnect.kmd.agency`) **sin DNS**, hay que quitar ese dominio en Clerk Dashboard; si no, el browser fallará con `ERR_NAME_NOT_RESOLVED`.
 
 ### Objetivo estable
 
 1. Clerk Dashboard → Domains → **quitar** Frontend API custom.
 2. Usar FAPI default `*.clerk.accounts.dev`.
 3. Actualizar keys en Vercel si Clerk las rota.
-4. Quitar `NEXT_PUBLIC_CLERK_PROXY_URL` y el código de proxy.
-5. Google redirect URI = la que muestre Clerk SSO (no `/__clerk/...`).
+4. Quitar `NEXT_PUBLIC_CLERK_PROXY_URL` de Vercel (si existe).
+5. Google OAuth redirect URI = la que muestre Clerk SSO (no `/__clerk/...`).
 
-Scripts:
+Scripts (solo si hay que reactivar proxy temporalmente):
 
 - `node scripts/set-clerk-proxy.mjs` — PATCH `proxy_url` (requiere `CLERK_SECRET_KEY`).
 - `node scripts/clear-clerk-proxy.mjs` — deja `proxy_url` en `null`.

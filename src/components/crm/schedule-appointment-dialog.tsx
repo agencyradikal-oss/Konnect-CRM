@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,22 @@ import {
 } from "@/components/ui/select";
 import { createAppointment } from "@/actions/appointments";
 
+/** Parse date + time from `<input type="date|time">` without Invalid Date. */
+function parseLocalDateTime(date: string, time: string): Date | null {
+  const d = date.trim();
+  const t = time.trim();
+  if (!d || !t) return null;
+  // Browsers may send HH:MM or HH:MM:SS — never append a second :00 blindly.
+  const m = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const hh = m[1].padStart(2, "0");
+  const mm = m[2];
+  const ss = m[3] ?? "00";
+  const value = new Date(`${d}T${hh}:${mm}:${ss}`);
+  if (Number.isNaN(value.getTime())) return null;
+  return value;
+}
+
 type Props = {
   defaultTitle: string;
   leadId?: string | null;
@@ -37,6 +54,7 @@ type Props = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   showTrigger?: boolean;
+  onSuccess?: (id: string) => void;
 };
 
 export function ScheduleAppointmentDialog({
@@ -50,7 +68,9 @@ export function ScheduleAppointmentDialog({
   open: openProp,
   onOpenChange,
   showTrigger = true,
+  onSuccess,
 }: Props) {
+  const router = useRouter();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = openProp ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
@@ -61,28 +81,48 @@ export function ScheduleAppointmentDialog({
     const date = String(fd.get("date") ?? "");
     const time = String(fd.get("time") ?? "09:00");
     const duration = Number(fd.get("duration") ?? 60);
-    const startsAt = new Date(`${date}T${time}:00`);
+    const startsAt = parseLocalDateTime(date, time);
+    if (!startsAt) {
+      toast.error("Revisa fecha y hora.");
+      return;
+    }
+    if (!Number.isFinite(duration) || duration < 15) {
+      toast.error("La duración debe ser al menos 15 minutos.");
+      return;
+    }
     const endsAt = new Date(startsAt.getTime() + duration * 60_000);
 
     startTransition(async () => {
-      const res = await createAppointment({
-        type,
-        title: String(fd.get("title") ?? defaultTitle),
-        notes: String(fd.get("notes") ?? "") || undefined,
-        startsAt: startsAt.toISOString(),
-        endsAt: endsAt.toISOString(),
-        address: String(fd.get("address") ?? "") || undefined,
-        city: String(fd.get("city") ?? "") || undefined,
-        zip: String(fd.get("zip") ?? "") || undefined,
-        leadId: leadId || null,
-        dealId: dealId || null,
-        contactId: contactId || null,
-        syncCalendar: true,
-      });
-      if (res.ok) {
-        toast.success("Cita agendada.");
-        setOpen(false);
-      } else toast.error(res.error ?? "No se pudo agendar.");
+      try {
+        const res = await createAppointment({
+          type,
+          title: String(fd.get("title") ?? defaultTitle),
+          notes: String(fd.get("notes") ?? "") || undefined,
+          startsAt: startsAt.toISOString(),
+          endsAt: endsAt.toISOString(),
+          address: String(fd.get("address") ?? "") || undefined,
+          city: String(fd.get("city") ?? "") || undefined,
+          zip: String(fd.get("zip") ?? "") || undefined,
+          leadId: leadId || null,
+          dealId: dealId || null,
+          contactId: contactId || null,
+          syncCalendar: true,
+        });
+        if (res.ok) {
+          toast.success("Cita agendada.", {
+            action: {
+              label: "Ver citas",
+              onClick: () => router.push("/app/citas"),
+            },
+          });
+          setOpen(false);
+          onSuccess?.(res.id);
+        } else {
+          toast.error(res.error ?? "No se pudo agendar.");
+        }
+      } catch {
+        toast.error("No se pudo agendar. Intenta de nuevo.");
+      }
     });
   }
 

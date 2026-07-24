@@ -3,8 +3,13 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { daysBetween, type DealCardData } from "@/lib/deals";
 import { DealsBoard } from "@/components/crm/deals-board";
 
-export default async function DealsPage() {
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deal?: string }>;
+}) {
   const { businessId } = await getCurrentBusiness();
+  const params = await searchParams;
 
   const deals = await prisma.deal.findMany({
     where: { businessId },
@@ -54,5 +59,11 @@ export default async function DealsPage() {
     .filter((d) => d.stage !== "GANADO" && d.stage !== "PERDIDO")
     .reduce((sum, d) => sum + (d.value ?? 0), 0);
 
-  return <DealsBoard deals={payload} pipeline={pipeline} />;
+  return (
+    <DealsBoard
+      deals={payload}
+      pipeline={pipeline}
+      initialDealId={params.deal ?? null}
+    />
+  );
 }

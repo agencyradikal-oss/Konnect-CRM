@@ -163,7 +163,14 @@ const createDealSchema = z.object({
 
 export async function createDeal(input: unknown) {
   const { businessId } = await getCurrentBusiness();
-  const data = createDealSchema.parse(input);
+  const parsed = createDealSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    };
+  }
+  const data = parsed.data;
 
   const contact = await prisma.contact.findFirst({
     where: { id: data.contactId, businessId },

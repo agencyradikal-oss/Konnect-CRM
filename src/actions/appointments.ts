@@ -52,7 +52,14 @@ async function assertCalendarPlan(businessId: string) {
 
 export async function createAppointment(input: unknown) {
   const { session, businessId } = await requireBusinessSession();
-  const data = appointmentSchema.parse(input);
+  const parsed = appointmentSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Revisa fecha, hora y título.",
+    };
+  }
+  const data = parsed.data;
   const { business, limits } = await assertCalendarPlan(businessId);
 
   if (!limits.googleCalendar) {

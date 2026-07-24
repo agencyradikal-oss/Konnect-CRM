@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -130,10 +131,13 @@ function Column({
 export function DealsBoard({
   deals: initialDeals,
   pipeline,
+  initialDealId = null,
 }: {
   deals: DealCardData[];
   pipeline: number;
+  initialDealId?: string | null;
 }) {
+  const router = useRouter();
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [deals, setDeals] = useState(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -144,6 +148,18 @@ export function DealsBoard({
   useEffect(() => {
     setDeals(initialDeals);
   }, [initialDeals]);
+
+  useEffect(() => {
+    if (!initialDealId) return;
+    const deal = initialDeals.find((d) => d.id === initialDealId);
+    if (deal) {
+      setSelected(deal);
+      setSheetOpen(true);
+    } else {
+      toast.error("Deal no encontrado.");
+      router.replace("/app/deals", { scroll: false });
+    }
+  }, [initialDealId, initialDeals, router]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -206,6 +222,15 @@ export function DealsBoard({
     const fresh = deals.find((d) => d.id === deal.id) ?? deal;
     setSelected(fresh);
     setSheetOpen(true);
+    router.replace(`/app/deals?deal=${deal.id}`, { scroll: false });
+  }
+
+  function onSheetOpenChange(next: boolean) {
+    setSheetOpen(next);
+    if (!next) {
+      setSelected(null);
+      router.replace("/app/deals", { scroll: false });
+    }
   }
 
   return (
@@ -318,7 +343,7 @@ export function DealsBoard({
       <DealDetailSheet
         deal={selected ? deals.find((d) => d.id === selected.id) ?? selected : null}
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={onSheetOpenChange}
       />
     </div>
   );

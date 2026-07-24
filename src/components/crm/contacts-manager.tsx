@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import { toast } from "sonner";
-import { Plus, Search, Upload } from "lucide-react";
+import { CalendarPlus, ChevronRight, Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
+import { CreateDealDialog } from "@/components/crm/create-deal-dialog";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createDeal, importContacts, upsertContact } from "@/actions/crm";
+import { importContacts, upsertContact } from "@/actions/crm";
 import { formatMoney } from "@/lib/date-range";
 import { StageBadge } from "@/components/crm/stage-badge";
 
@@ -78,6 +79,8 @@ export function ContactsManager({
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<ContactRow | null>(null);
   const [open, setOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [dealOpen, setDealOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [importOpen, setImportOpen] = useState(false);
   const [preview, setPreview] = useState<CsvPreview | null>(null);
@@ -353,27 +356,51 @@ export function ContactsManager({
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>
-              {selected ? "Editar contacto" : "Nuevo contacto"}
+              {selected ? "Contacto" : "Nuevo contacto"}
             </SheetTitle>
             <SheetDescription>
-              Los cambios se guardan en tu CRM (tenant actual).
+              {selected
+                ? selected.name
+                : "Completa los datos y guarda en tu CRM."}
             </SheetDescription>
           </SheetHeader>
 
+          {selected && (
+            <div className="flex flex-wrap gap-2 border-b px-4 pb-4">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setOpen(false);
+                  setScheduleOpen(true);
+                }}
+              >
+                <CalendarPlus className="size-4" />
+                Agendar cita
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setOpen(false);
+                  setDealOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Nuevo deal
+              </Button>
+            </div>
+          )}
+
           <form
-            className="space-y-4 px-4 pb-8"
+            className="space-y-4 px-4 pb-6"
             onSubmit={(e) => {
               e.preventDefault();
               saveContact(e.currentTarget);
             }}
           >
-            {selected && (
-              <ScheduleAppointmentDialog
-                defaultTitle={`Medida — ${selected.name}`}
-                contactId={selected.id}
-                triggerLabel="Agendar medida / visita"
-              />
-            )}
             <div className="space-y-1.5">
               <Label htmlFor="name">Nombre *</Label>
               <Input
@@ -440,38 +467,41 @@ export function ContactsManager({
                 <Button
                   type="button"
                   size="sm"
-                  variant="secondary"
-                  disabled={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const res = await createDeal({
-                        contactId: selected.id,
-                        title: `Deal — ${selected.name}`,
-                      });
-                      if (res.ok) toast.success("Deal creado.");
-                      else toast.error(res.error);
-                    })
-                  }
+                  variant="ghost"
+                  onClick={() => {
+                    setOpen(false);
+                    setDealOpen(true);
+                  }}
                 >
-                  <Plus className="size-4" /> Nuevo deal
+                  <Plus className="size-4" /> Nuevo
                 </Button>
               </div>
               {selected.deals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin deals.</p>
+                <p className="text-sm text-muted-foreground">
+                  Sin deals. Crea uno para seguir el pipeline.
+                </p>
               ) : (
                 <ul className="space-y-2">
                   {selected.deals.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">{d.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {d.value != null ? formatMoney(d.value) : "Sin valor"}
-                        </p>
-                      </div>
-                      <StageBadge stage={d.stage} />
+                    <li key={d.id}>
+                      <Link
+                        href={`/app/deals?deal=${d.id}`}
+                        className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/60"
+                        onClick={() => setOpen(false)}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{d.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {d.value != null
+                              ? formatMoney(d.value)
+                              : "Sin valor"}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <StageBadge stage={d.stage} />
+                          <ChevronRight className="size-4 text-muted-foreground" />
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -480,6 +510,26 @@ export function ContactsManager({
           )}
         </SheetContent>
       </Sheet>
+
+      {selected && (
+        <>
+          <ScheduleAppointmentDialog
+            defaultTitle={`Medida — ${selected.name}`}
+            contactId={selected.id}
+            open={scheduleOpen}
+            onOpenChange={setScheduleOpen}
+            showTrigger={false}
+          />
+          <CreateDealDialog
+            contactId={selected.id}
+            contactName={selected.name}
+            open={dealOpen}
+            onOpenChange={setDealOpen}
+            showTrigger={false}
+            onSuccess={() => setOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

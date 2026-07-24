@@ -12,18 +12,9 @@ import { expireClerkCookiesOnResponse } from "@/lib/clerk-cookies";
 const isAppRoute = createRouteMatcher(["/app(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
-const PROXY_URL = (() => {
-  const raw =
-    process.env.NEXT_PUBLIC_CLERK_PROXY_URL?.trim() ||
-    (process.env.VERCEL_ENV === "production"
-      ? "https://konnect.kmd.agency/__clerk"
-      : undefined);
-  return raw ? raw.replace(/\/$/, "") : undefined;
-})();
-
 /**
- * FAPI custom (clerk.konnect.kmd.agency / clerk.kmd.agency) sin DNS.
- * Obligatorio proxy hasta quitar el dominio custom en Clerk Dashboard.
+ * Proxy omitido por ahora: FAPI directo (*.clerk.accounts.dev).
+ * Reactivar proxy solo si vuelve FAPI custom sin DNS.
  */
 const clerkHandler = clerkMiddleware(
   async (auth, req) => {
@@ -41,10 +32,6 @@ const clerkHandler = clerkMiddleware(
     return NextResponse.next();
   },
   {
-    frontendApiProxy: {
-      enabled: true,
-    },
-    ...(PROXY_URL ? { proxyUrl: PROXY_URL } : {}),
     signInUrl: "/login",
     signUpUrl: "/signup",
   },
@@ -80,6 +67,5 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
-    "/__clerk/(.*)",
   ],
 };
