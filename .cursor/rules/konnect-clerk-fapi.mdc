@@ -1,0 +1,21 @@
+---
+description: Invariante Clerk FAPI ↔ proxy — no romper login en producción
+globs: "**/middleware.ts,**/clerk-provider.tsx,**/clerk-fapi.ts,**/auth-clerk.md"
+alwaysApply: false
+---
+
+# Clerk FAPI ↔ proxy
+
+Producto: https://konnect.kmd.agency. Detalle: `docs/auth-clerk.md`.
+
+## Nunca mezclar
+
+| Modo | FAPI (publishable key) | `NEXT_PUBLIC_CLERK_PROXY_URL` | `frontendApiProxy` |
+|------|------------------------|------------------------------|--------------------|
+| A estable | `*.clerk.accounts.dev` | ausente | off |
+| B temporal | custom sin DNS | `https://konnect.kmd.agency/__clerk` | on |
+
+Prohibido: quitar proxy del middleware mientras la key sea FAPI custom (login stuck «Cargando…», `/__clerk` 404).
+
+Proxy **solo** si la env está definida — no hardcodear URL de producción.
+Diagnóstico: `GET /api/auth/status` → `fapi.mismatch`.
