@@ -8,14 +8,18 @@ import {
   type NextRequest,
 } from "next/server";
 import { expireClerkCookiesOnResponse } from "@/lib/clerk-cookies";
+import { resolveClerkProxyUrl } from "@/lib/clerk-fapi";
 
 const isAppRoute = createRouteMatcher(["/app(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 /**
- * Proxy omitido por ahora: FAPI directo (*.clerk.accounts.dev).
- * Reactivar proxy solo si vuelve FAPI custom sin DNS.
+ * Proxy SOLO si NEXT_PUBLIC_CLERK_PROXY_URL está definida.
+ * Invariante: FAPI custom (sin DNS) ⇒ proxy ON; FAPI *.clerk.accounts.dev ⇒ proxy OFF.
+ * Nunca hardcodear el proxy de producción aquí (causa estados a medias).
  */
+const PROXY_URL = resolveClerkProxyUrl();
+
 const clerkHandler = clerkMiddleware(
   async (auth, req) => {
     if (isAppRoute(req) || isAdminRoute(req)) {
@@ -32,6 +36,12 @@ const clerkHandler = clerkMiddleware(
     return NextResponse.next();
   },
   {
+    ...(PROXY_URL
+      ? {
+          frontendApiProxy: { enabled: true },
+          proxyUrl: PROXY_URL,
+        }
+      : {}),
     signInUrl: "/login",
     signUpUrl: "/signup",
   },
@@ -67,5 +77,7 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
+    // Requerido cuando el proxy está activo (FAPI custom).
+    "/__clerk/(.*)",
   ],
 };

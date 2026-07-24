@@ -80,9 +80,10 @@ Las fichas públicas muestran `logoUrl`, `coverUrl` y hasta 10 fotos de `gallery
 2. Email + Google OAuth.
 3. `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (misma instancia).
 4. Webhook → `https://konnect.kmd.agency/api/webhooks/clerk` → `CLERK_WEBHOOK_SIGNING_SECRET`.
-5. **Proxy omitido en código** (por ahora). Auth usa FAPI directo.
-   Si la key de Production aún apunta a FAPI custom sin DNS, **quítalo en Clerk Dashboard**
-   (Domains → remove custom Frontend API) y usa `*.clerk.accounts.dev`.
+5. **Modos Clerk (no mezclar):** ver [docs/auth-clerk.md](docs/auth-clerk.md).
+   - **A (estable):** FAPI `*.clerk.accounts.dev` → **sin** `NEXT_PUBLIC_CLERK_PROXY_URL`.
+   - **B (temporal):** FAPI custom sin DNS → Vercel `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk` + proxy en middleware (env-gated).
+   Producción hoy puede estar en B hasta quitar el FAPI custom en Clerk Dashboard.
 6. Vercel: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup`.
 7. Cookies rotas: `POST /api/auth/clear-clerk` o el botón en `/login`.
 9. Health: `GET /api/auth/status` → `{ clerk: "missing"|"ok", prisma: "skipped"|"ok"|… }`.
@@ -127,7 +128,7 @@ Copia [.env.example](.env.example). Resumen:
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Sí (prod) | Firma webhook Clerk |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Prod | `/login` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Prod | `/signup` |
-| `NEXT_PUBLIC_CLERK_PROXY_URL` | No (proxy omitido) | No usar por ahora; FAPI directo |
+| `NEXT_PUBLIC_CLERK_PROXY_URL` | Solo modo B | `https://konnect.kmd.agency/__clerk` si FAPI custom; **borrar** en modo A |
 | `NEXT_PUBLIC_APP_URL` | Sí | URL pública sin slash final |
 | `GOOGLE_GEOCODING_API_KEY` | No | Si falta, geocode usa Nominatim |
 | `STRIPE_SECRET_KEY` | Billing | `sk_test_…` o `sk_live_…` |

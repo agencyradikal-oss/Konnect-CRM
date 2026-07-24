@@ -14,6 +14,10 @@ import {
   isApiKeyFormat,
   verifyApiKeyHash,
 } from "@/lib/api-keys";
+import {
+  assessClerkFapiHealth,
+  decodeClerkFrontendApiHost,
+} from "@/lib/clerk-fapi";
 
 describe("auth status payloads", () => {
   it("reports skipped prisma when clerk missing", () => {
@@ -21,6 +25,7 @@ describe("auth status payloads", () => {
     expect(body.clerk).toBe("missing");
     expect(body.prisma).toBe("skipped");
     expect(body.prismaOk).toBe(false);
+    expect(body.fapi).toBeDefined();
   });
 
   it("reports ok when session exists", () => {
@@ -32,6 +37,45 @@ describe("auth status payloads", () => {
 
   it("reports missing_user when clerk ok but no prisma user", () => {
     expect(authStatusMissingUser().prisma).toBe("missing_user");
+  });
+});
+
+describe("clerk FAPI vs proxy invariant", () => {
+  it("decodes custom FAPI host from publishable key", () => {
+    // clerk.konnect.kmd.agency$
+    const pk = "pk_live_Y2xlcmsua29ubmVjdC5rbWQuYWdlbmN5JA";
+    expect(decodeClerkFrontendApiHost(pk)).toBe("clerk.konnect.kmd.agency");
+  });
+
+  it("flags mismatch when custom FAPI without proxy", () => {
+    const h = assessClerkFapiHealth({
+      publishableKey: "pk_live_Y2xlcmsua29ubmVjdC5rbWQuYWdlbmN5JA",
+      proxyUrl: "",
+    });
+    expect(h.isCustomFapi).toBe(true);
+    expect(h.proxyConfigured).toBe(false);
+    expect(h.mismatch).toBe(true);
+  });
+
+  it("ok when custom FAPI with proxy", () => {
+    const h = assessClerkFapiHealth({
+      publishableKey: "pk_live_Y2xlcmsua29ubmVjdC5rbWQuYWdlbmN5JA",
+      proxyUrl: "https://konnect.kmd.agency/__clerk",
+    });
+    expect(h.mismatch).toBe(false);
+    expect(h.proxyConfigured).toBe(true);
+  });
+
+  it("flags mismatch when default FAPI with leftover proxy", () => {
+    // forged: "foo.clerk.accounts.dev$"
+    const host = "foo.clerk.accounts.dev$";
+    const b64 = btoa(host).replace(/=+$/, "");
+    const h = assessClerkFapiHealth({
+      publishableKey: `pk_live_${b64}`,
+      proxyUrl: "https://konnect.kmd.agency/__clerk",
+    });
+    expect(h.isCustomFapi).toBe(false);
+    expect(h.mismatch).toBe(true);
   });
 });
 

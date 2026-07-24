@@ -1,79 +1,131 @@
 # Auth Clerk (interno)
 
-Documento operativo para el equipo. No sustituye la sección Auth del [README](../README.md).
+Documento operativo para el equipo. Producto: **https://konnect.kmd.agency**.
+No sustituye la sección Auth del [README](../README.md).
 
-## Arquitectura actual
+## Invariante (leer antes de tocar proxy / DNS)
+
+Hay **exactamente dos modos válidos**. Cualquier mezcla rompe el login (síntoma: `/login` en «Cargando…»).
+
+| Modo | Publishable key (FAPI) | `NEXT_PUBLIC_CLERK_PROXY_URL` | Middleware `frontendApiProxy` |
+|------|------------------------|------------------------------|-------------------------------|
+| **A — Estable** | `*.clerk.accounts.dev` | **ausente** | **off** |
+| **B — Temporal** | custom (`clerk.konnect.kmd.agency`) **sin DNS** | `https://konnect.kmd.agency/__clerk` | **on** |
+
+**Prohibido (estado a medias):**
+
+1. Quitar el proxy del código / middleware **mientras** la key sigue siendo FAPI custom → `/__clerk` 404 + scripts Clerk apuntan al proxy → «Cargando…».
+2. Dejar `NEXT_PUBLIC_CLERK_PROXY_URL` en Vercel **después** de pasar a FAPI default.
+3. Hardcodear el proxy de producción en el repo (fuerza modo B aunque Vercel ya no lo tenga).
+
+Código: proxy **solo** si la env está definida ([`middleware.ts`](../src/middleware.ts), [`clerk-provider.tsx`](../src/components/auth/clerk-provider.tsx)). Helpers: [`src/lib/clerk-fapi.ts`](../src/lib/clerk-fapi.ts).
+
+## Arquitectura
+
+```
+Modo A (estable):
+  Browser → ClerkJS → FAPI *.clerk.accounts.dev
+  Server  → clerkMiddleware / auth() → Prisma User
+
+Modo B (temporal, FAPI custom sin DNS):
+  Browser → ClerkJS → https://konnect.kmd.agency/__clerk → Clerk FAPI
+  Server  → clerkMiddleware (frontendApiProxy) → mismo proxy
+```
 
 - Auth: **Clerk** (email/password + Google OAuth).
 - Roles / tenant: **Prisma** (`User.role`, `User.businessId`, `User.clerkUserId`).
 - Sync: webhook `/api/webhooks/clerk` + `upsertUserFromClerk` en login/`auth()`.
 - UI ES: `localization={esES}` en `KonnectClerkProvider`.
 
-```
-Browser → ClerkJS → FAPI (*.clerk.accounts.dev)  [proxy omitido]
-Server  → clerkMiddleware / auth() → Prisma User
-```
+## Incidente 2026-07 (producción)
 
-## Estado del dominio FAPI (crítico)
+| Hallazgo | Valor |
+|----------|--------|
+| Key live decodificada | `clerk.konnect.kmd.agency` |
+| DNS de ese host | **NXDOMAIN** |
+| Vercel `NEXT_PUBLIC_CLERK_PROXY_URL` | presente (Production) |
+| Middleware proxy | se había desactivado → `/__clerk` **404** |
+| UI | `/login` stuck en «Cargando…» |
 
-**Proxy omitido en código** (middleware / `ClerkProvider` sin `proxyUrl` ni `frontendApiProxy`). Auth va directo a FAPI default.
+**Causa:** modo B a medias (env proxy + key custom, pero sin `frontendApiProxy`).
+**Mitigación:** volver a modo B coherente (proxy env-gated en middleware) hasta migrar a modo A.
 
-Si la publishable key de Production aún apunta a un **Frontend API custom** (`clerk.konnect.kmd.agency`) **sin DNS**, hay que quitar ese dominio en Clerk Dashboard; si no, el browser fallará con `ERR_NAME_NOT_RESOLVED`.
+## Pasar a modo A (estable) — checklist
 
-### Objetivo estable
+Hacer **en este orden** (no invertir):
 
-1. Clerk Dashboard → Domains → **quitar** Frontend API custom.
-2. Usar FAPI default `*.clerk.accounts.dev`.
-3. Actualizar keys en Vercel si Clerk las rota.
-4. Quitar `NEXT_PUBLIC_CLERK_PROXY_URL` de Vercel (si existe).
-5. Google OAuth redirect URI = la que muestre Clerk SSO (no `/__clerk/...`).
+1. Clerk Dashboard → **Configure → Domains** → quitar Frontend API custom (`clerk.konnect.kmd.agency` / `clerk.kmd.agency`).
+2. Confirmar que la publishable key decodifica a `*.clerk.accounts.dev` (ver diagnóstico abajo). Si Clerk rota keys, actualizar Vercel.
+3. Google Cloud OAuth: redirect URI = la de Clerk SSO (`*.clerk.accounts.dev/.../oauth_callback`), **no** `/__clerk/...`.
+4. Vercel Production: **borrar** `NEXT_PUBLIC_CLERK_PROXY_URL`.
+5. Redeploy. Verificar `/login` muestra el formulario Clerk (no «Cargando…»).
+6. Opcional: `CLERK_SECRET_KEY=sk_live_… node scripts/clear-clerk-proxy.mjs` para `proxy_url: null` en la API de dominios.
 
-Scripts (solo si hay que reactivar proxy temporalmente):
+## Reactivar modo B (solo si FAPI custom vuelve)
 
-- `node scripts/set-clerk-proxy.mjs` — PATCH `proxy_url` (requiere `CLERK_SECRET_KEY`).
-- `node scripts/clear-clerk-proxy.mjs` — deja `proxy_url` en `null`.
+1. Vercel: `NEXT_PUBLIC_CLERK_PROXY_URL=https://konnect.kmd.agency/__clerk`
+2. Clerk Domains → **Set proxy** = misma URL (`node scripts/set-clerk-proxy.mjs`).
+3. Redeploy (el código ya activa `frontendApiProxy` si la env existe).
+4. Google redirect: `https://konnect.kmd.agency/__clerk/v1/oauth_callback`
 
-## Endpoints de diagnóstico
+## Diagnóstico
 
 ### `GET /api/auth/status`
 
-No confundir “sin sesión Clerk” con “DB caída”.
+Incluye bloque `fapi` (sin secretos):
 
-| Respuesta | Significado |
-|-----------|-------------|
-| `clerk: "missing"`, `prisma: "skipped"` | No hay `userId` Clerk en el servidor. Prisma **no se consultó**. |
-| `clerk: "ok"`, `prisma: "ok"` | Sesión Clerk + fila Prisma. |
-| `clerk: "ok"`, `prisma: "missing_user"` | Clerk OK; falta sync Prisma → usar `POST /api/auth/sync`. |
-| `clerk: "ok"`, `prisma: "error"` | Fallo real al hablar con Prisma / sync. |
+```json
+{
+  "clerk": "missing",
+  "prisma": "skipped",
+  "fapi": {
+    "fapiHost": "clerk.konnect.kmd.agency",
+    "isCustomFapi": true,
+    "proxyConfigured": true,
+    "proxyUrl": "https://konnect.kmd.agency/__clerk",
+    "mismatch": false,
+    "advice": "Modo proxy activo (temporal)…"
+  }
+}
+```
 
-Campos legacy (`clerkHasUserId`, `prismaOk`) se mantienen por compatibilidad.
+Si `fapi.mismatch === true`, arreglar env/Dashboard antes de seguir.
 
-### `POST /api/auth/clear-clerk`
+Decodificar key a mano (PowerShell):
 
-Expira cookies Clerk **incluyendo HttpOnly `__session`**. Usar cuando el cliente cree estar firmado y el servidor no.
+```powershell
+$pk = "pk_live_...."  # publishable
+$b64 = $pk -replace '^pk_(live|test)_',''
+$pad = $b64 + ('=' * ((4 - $b64.Length % 4) % 4))
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($pad))
+```
 
-### `POST /api/auth/sync`
+### Otros endpoints
 
-Fuerza `auth()` (upsert Prisma desde Clerk) cuando ya hay `userId`.
+| Endpoint | Uso |
+|----------|-----|
+| `POST /api/auth/clear-clerk` | Expira cookies Clerk (incl. HttpOnly `__session`) |
+| `POST /api/auth/sync` | Fuerza upsert Prisma cuando ya hay `userId` |
 
 ## Flujo post-login: `/auth/continue`
 
 1. Server: si `auth()` ya tiene usuario → redirect a dashboard o `/registrar-empresa`.
 2. Si no: `AuthContinueClient` hace **8 intentos × 750 ms** contra `/api/auth/status`.
-3. Solo avanza si `clerk === "ok"` en **servidor** (no confiar solo en `useAuth().isSignedIn`).
-4. Si agota reintentos → botón hard reset (clear cookies + `signOut` + `/login`).
-
-Síntoma típico de desync: mensaje “esperando sesión en el servidor…” / “El servidor no recibió la sesión”.
-
-## Header público vs cliente
-
-- `SiteHeader` usa `auth()` **server-side** para “Mi panel”.
-- No mostrar estado logueado solo con `useAuth().isSignedIn` del browser.
+3. Solo avanza si `clerk === "ok"` en **servidor**.
+4. Si agota → hard reset (clear cookies + `signOut` + `/login`).
 
 ## Checklist de incidentes
 
-1. Consola: ¿`ERR_NAME_NOT_RESOLVED` a `clerk.*.kmd.agency`? → proxy / DNS / quitar custom FAPI.
-2. Google `redirect_uri_mismatch` → URI en Google Cloud debe coincidir con Clerk (proxy o accounts.dev).
-3. `/api/auth/status` → mirar `clerk` primero; `prisma: skipped` **no** es Neon caído.
-4. Cookies mezcladas / handshake → `POST /api/auth/clear-clerk` o botón en `/login`.
-5. Handshake anidado (`session-token-but-no-client-uat`) → middleware corta URL anidada y limpia cookies.
+1. `/login` en «Cargando…» → `GET /api/auth/status` → mirar `fapi.mismatch` / `fapiHost`.
+2. Consola: `ERR_NAME_NOT_RESOLVED` a `clerk.*.kmd.agency` → falta proxy (modo B) o quitar custom FAPI (modo A).
+3. Consola / Network: `/__clerk/...` **404** → env proxy presente pero middleware sin `frontendApiProxy` (estado a medias).
+4. Google `redirect_uri_mismatch` → URI debe coincidir con el modo (proxy vs accounts.dev).
+5. Cookies / handshake → `POST /api/auth/clear-clerk` o botón en `/login`.
+6. Handshake anidado → middleware corta y limpia cookies.
+
+## Scripts
+
+- `node scripts/set-clerk-proxy.mjs` — PATCH `proxy_url` (requiere `CLERK_SECRET_KEY` legible).
+- `node scripts/clear-clerk-proxy.mjs` — `proxy_url: null`.
+
+Nota: en Vercel las vars Clerk suelen ser **Sensitive**; `vercel env pull` no las descarga. Usar el secret desde Clerk Dashboard en local solo para esos scripts.
