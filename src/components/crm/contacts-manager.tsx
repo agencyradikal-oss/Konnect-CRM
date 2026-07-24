@@ -54,6 +54,10 @@ export type ContactRow = {
   email: string | null;
   phone: string | null;
   company: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
   notes: string | null;
   tags: string[];
   deals: {
@@ -436,6 +440,42 @@ export function ContactsManager({
                 name="company"
                 defaultValue={selected?.company ?? ""}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="address">Dirección (opcional)</Label>
+              <Input
+                id="address"
+                name="address"
+                defaultValue={selected?.address ?? ""}
+                placeholder="Calle y número"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5 sm:col-span-1">
+                <Label htmlFor="city">Ciudad</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  defaultValue={selected?.city ?? ""}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="state">Estado</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  defaultValue={selected?.state ?? ""}
+                  placeholder="GA"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="zip">ZIP</Label>
+                <Input
+                  id="zip"
+                  name="zip"
+                  defaultValue={selected?.zip ?? ""}
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="tags">Tags (separados por coma)</Label>

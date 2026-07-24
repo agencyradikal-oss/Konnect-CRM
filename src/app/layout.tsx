@@ -5,7 +5,6 @@ import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import { KonnectClerkProvider } from "@/components/auth/clerk-provider";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { brand } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,19 +17,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteTitle = "Konnect™ — Directorio de negocios hispanos en Atlanta";
+const siteDescription =
+  "Encuentra negocios hispanos en Atlanta metro: remodelación, restaurantes, salud, legal y más. Contacta directo en español.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(getAppBaseUrl()),
   title: {
-    default: "Konnect™ — Directorio de negocios hispanos en Atlanta",
+    default: siteTitle,
     template: "%s | Konnect™",
   },
-  description:
-    "Encuentra negocios hispanos en Atlanta metro: remodelación, restaurantes, salud, legal y más. Contacta directo en español.",
-  // Favicon / PWA icons — un solo archivo en public/brand/iso.png (ver src/lib/brand.ts)
-  icons: {
-    icon: [{ url: brand.isoSrc, type: "image/png" }],
-    apple: [{ url: brand.isoSrc }],
-    shortcut: brand.isoSrc,
+  description: siteDescription,
+  // Favicon / apple: src/app/icon.tsx + apple-icon.tsx (ImageResponse KN)
+  openGraph: {
+    type: "website",
+    locale: "es_US",
+    siteName: "Konnect™",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
   },
 };
 

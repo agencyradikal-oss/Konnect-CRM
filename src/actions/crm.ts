@@ -281,13 +281,24 @@ const contactSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().max(40).optional().or(z.literal("")),
   company: z.string().max(120).optional().or(z.literal("")),
+  address: z.string().max(300).optional().or(z.literal("")),
+  city: z.string().max(120).optional().or(z.literal("")),
+  state: z.string().max(40).optional().or(z.literal("")),
+  zip: z.string().max(20).optional().or(z.literal("")),
   notes: z.string().max(5000).optional().or(z.literal("")),
   tags: z.string().optional().or(z.literal("")), // comma-separated
 });
 
 export async function upsertContact(input: unknown) {
   const { businessId } = await getCurrentBusiness();
-  const data = contactSchema.parse(input);
+  const parsed = contactSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    };
+  }
+  const data = parsed.data;
   const tags = data.tags
     ? data.tags
         .split(",")
@@ -295,11 +306,23 @@ export async function upsertContact(input: unknown) {
         .filter(Boolean)
     : [];
 
+  const hasAddressBits =
+    Boolean(data.address?.trim()) ||
+    Boolean(data.city?.trim()) ||
+    Boolean(data.zip?.trim()) ||
+    Boolean(data.state?.trim());
+
   const payload = {
     name: sanitizeUserText(data.name, 120),
     email: data.email?.trim() || null,
     phone: data.phone?.trim() || null,
     company: data.company ? sanitizeUserText(data.company, 120) : null,
+    address: data.address ? sanitizeUserText(data.address, 300) : null,
+    city: data.city ? sanitizeUserText(data.city, 120) : null,
+    state: hasAddressBits
+      ? sanitizeUserText(data.state?.trim() || "GA", 40)
+      : null,
+    zip: data.zip ? sanitizeUserText(data.zip, 20) : null,
     notes: data.notes ? sanitizeUserText(data.notes, 5000) : null,
     tags,
   };

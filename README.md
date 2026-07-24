@@ -205,7 +205,7 @@ SEO: `sitemap.xml`, `robots.txt` (bloquea `/app/`, `/admin/`, `/api/`).
 
 ### Marca (favicon + iso)
 
-Un solo archivo: `public/brand/iso.png`. Config en `src/lib/brand.ts`. El componente `BrandMark` / `BrandWordmark` lo usa en header público, CRM y admin. Para cambiar el logo: reemplaza ese PNG (ideal 512×512).
+UI: `BrandMark` (SVG inline) + `public/brand/iso.svg`. Favicon/OG: `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` (ImageResponse KN). Config en `src/lib/brand.ts`.
 
 ### APIs
 

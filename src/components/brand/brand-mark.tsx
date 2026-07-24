@@ -1,17 +1,15 @@
-import Image from "next/image";
 import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 type BrandMarkProps = {
   size?: number;
   className?: string;
-  /** Fondo detrás del iso (útil si el PNG es blanco sobre transparente). */
+  /** Fondo detrás del iso. */
   withBackdrop?: boolean;
 };
 
 /**
- * Isotipo reutilizable. Cambia el archivo en `public/brand/iso.png`
- * (ver `src/lib/brand.ts`) sin editar cada header.
+ * Isotipo KN (SVG). Favicon/OG se generan en `src/app/icon.tsx` etc.
  */
 export function BrandMark({
   size = 32,
@@ -22,19 +20,35 @@ export function BrandMark({
     <span
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg",
-        withBackdrop && "bg-black",
+        withBackdrop && "bg-[#0e1b1a]",
         className,
       )}
       style={{ width: size, height: size }}
+      role="img"
+      aria-label={brand.markAlt}
     >
-      <Image
-        src={brand.isoSrc}
-        alt={brand.markAlt}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 64 64"
         width={size}
         height={size}
-        className="object-contain"
-        priority
-      />
+        className="block"
+        aria-hidden
+      >
+        <rect width="64" height="64" rx="12" fill="#0e1b1a" />
+        <rect x="9" y="9" width="46" height="46" rx="9" fill="#31c9c0" />
+        <text
+          x="32"
+          y="43"
+          textAnchor="middle"
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+          fontSize="34"
+          fontWeight="800"
+          fill="#06302d"
+        >
+          K
+        </text>
+      </svg>
     </span>
   );
 }

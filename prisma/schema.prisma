@@ -228,6 +228,10 @@ model Contact {
   email      String?
   phone      String?
   company    String?
+  address    String?
+  city       String?
+  state      String?
+  zip        String?
   notes      String?  @db.Text
   tags       String[]
   deals      Deal[]

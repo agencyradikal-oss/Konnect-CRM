@@ -33,6 +33,10 @@ export default async function ContactosPage({
         email: c.email,
         phone: c.phone,
         company: c.company,
+        address: c.address,
+        city: c.city,
+        state: c.state,
+        zip: c.zip,
         notes: c.notes,
         tags: c.tags,
         deals: c.deals.map((d) => ({
