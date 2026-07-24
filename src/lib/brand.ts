@@ -1,16 +1,21 @@
 /**
  * Identidad visual Konnect™ / KMD.
  *
- * Favicon / OG: `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`
- * (ImageResponse). UI: `BrandMark` (SVG inline) + opcional `public/brand/iso.svg`.
+ * Iso heredado de KMD Agency: dragón Komodo (`public/brand/iso.png`).
+ * No sustituir por monograma/letra inventada.
+ *
+ * Favicon: `src/app/icon.png` · Apple: `src/app/apple-icon.png`
+ * Share OG: `public/brand/og.png` + `opengraph-image.tsx`
  */
 export const brand = {
   name: "Konnect",
   trademark: "Konnect™",
-  markAlt: "Konnect — iso KN",
-  /** Ruta pública del isotipo SVG (fallback UI / docs). */
-  isoSrc: "/brand/iso.svg",
-  isoPathOnDisk: "public/brand/iso.svg",
+  markAlt: "Konnect — iso KMD",
+  /** Ruta pública del isotipo (favicon + logo en UI). */
+  isoSrc: "/brand/iso.png",
+  /** PNG rojo KMD para Open Graph / share. */
+  ogSrc: "/brand/og.png",
+  isoPathOnDisk: "public/brand/iso.png",
 } as const;
 
 export type BrandConfig = typeof brand;

@@ -1,11 +1,20 @@
 import { ImageResponse } from "next/og";
-import { KN, KnMark } from "@/lib/brand-og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const alt = "Konnect™ — Directorio de negocios hispanos en Atlanta";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+/** Rojo KMD del asset og.png (aprox.). */
+const KMD_RED = "#E30613";
+
+export default async function OpenGraphImage() {
+  const ogBytes = await readFile(
+    join(process.cwd(), "public", "brand", "og.png"),
+  );
+  const ogSrc = `data:image/png;base64,${ogBytes.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -13,52 +22,54 @@ export default function OpenGraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: 72,
-          background: `linear-gradient(145deg, ${KN.ink} 0%, #163432 55%, ${KN.deep} 100%)`,
+          alignItems: "center",
+          justifyContent: "center",
+          background: KMD_RED,
+          position: "relative",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          <KnMark size={96} />
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse */}
+        <img
+          src={ogSrc}
+          width={630}
+          height={630}
+          style={{ objectFit: "contain" }}
+          alt=""
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: 64,
+            bottom: 56,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
           <div
             style={{
               display: "flex",
-              fontSize: 64,
+              fontSize: 52,
               fontWeight: 800,
-              color: KN.cream,
+              color: "#ffffff",
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
-              letterSpacing: "-0.03em",
+              letterSpacing: "-0.02em",
+              textShadow: "0 2px 12px rgba(0,0,0,0.35)",
             }}
           >
-            Konnect
-            <span style={{ color: KN.teal }}>™</span>
+            Konnect™
           </div>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div
             style={{
               display: "flex",
-              fontSize: 44,
-              fontWeight: 600,
-              color: KN.cream,
-              maxWidth: 900,
-              lineHeight: 1.2,
+              fontSize: 26,
+              color: "#ffffff",
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
+              opacity: 0.95,
+              textShadow: "0 2px 8px rgba(0,0,0,0.35)",
             }}
           >
             Directorio de negocios hispanos en Atlanta
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 28,
-              color: KN.teal,
-              fontFamily: "ui-sans-serif, system-ui, sans-serif",
-            }}
-          >
-            Encuentra · Contacta · Crece — CRM incluido
           </div>
         </div>
       </div>

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s | Konnect™",
   },
   description: siteDescription,
-  // Favicon / apple: src/app/icon.tsx + apple-icon.tsx (ImageResponse KN)
+  // Favicon / apple: src/app/icon.png + apple-icon.png (iso KMD Komodo)
   openGraph: {
     type: "website",
     locale: "es_US",

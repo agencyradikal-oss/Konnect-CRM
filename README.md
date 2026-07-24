@@ -205,7 +205,7 @@ SEO: `sitemap.xml`, `robots.txt` (bloquea `/app/`, `/admin/`, `/api/`).
 
 ### Marca (favicon + iso)
 
-UI: `BrandMark` (SVG inline) + `public/brand/iso.svg`. Favicon/OG: `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` (ImageResponse KN). Config en `src/lib/brand.ts`.
+Iso heredado de KMD (dragón Komodo): `public/brand/iso.png` + `BrandMark`. Favicon: `src/app/icon.png` / `apple-icon.png`. Share: `public/brand/og.png` vía `opengraph-image.tsx`. Config en `src/lib/brand.ts` — no sustituir por monograma.
 
 ### APIs
 
