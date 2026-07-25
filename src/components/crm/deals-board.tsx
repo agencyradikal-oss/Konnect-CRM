@@ -132,10 +132,12 @@ export function DealsBoard({
   deals: initialDeals,
   pipeline,
   initialDealId = null,
+  canUseEstimates = false,
 }: {
   deals: DealCardData[];
   pipeline: number;
   initialDealId?: string | null;
+  canUseEstimates?: boolean;
 }) {
   const router = useRouter();
   const [view, setView] = useState<"kanban" | "table">("kanban");
@@ -344,6 +346,7 @@ export function DealsBoard({
         deal={selected ? deals.find((d) => d.id === selected.id) ?? selected : null}
         open={sheetOpen}
         onOpenChange={onSheetOpenChange}
+        canUseEstimates={canUseEstimates}
       />
     </div>
   );

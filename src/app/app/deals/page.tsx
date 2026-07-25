@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { getBusinessPlanLimits } from "@/lib/plans";
 import { daysBetween, type DealCardData } from "@/lib/deals";
 import { DealsBoard } from "@/components/crm/deals-board";
 
@@ -8,7 +9,8 @@ export default async function DealsPage({
 }: {
   searchParams: Promise<{ deal?: string }>;
 }) {
-  const { businessId } = await getCurrentBusiness();
+  const { businessId, business } = await getCurrentBusiness();
+  const canUseEstimates = getBusinessPlanLimits(business).estimates;
   const params = await searchParams;
 
   const deals = await prisma.deal.findMany({
@@ -64,6 +66,7 @@ export default async function DealsPage({
       deals={payload}
       pipeline={pipeline}
       initialDealId={params.deal ?? null}
+      canUseEstimates={canUseEstimates}
     />
   );
 }

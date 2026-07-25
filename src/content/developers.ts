@@ -32,11 +32,11 @@ export const developersEs = {
     },
     {
       id: "webhooks",
-      title: "Webhooks de salida (leads → Square / QuickBooks / Zapier)",
+      title: "Webhooks de salida (leads y presupuestos → Zapier)",
       body: [
-        "Cuando un lead se crea vía El Puente, Konnect hace POST a tu URL (si está habilitada en /app/integraciones).",
-        "Firma: header X-Konnect-Signature = HMAC-SHA256 hex del body con tu webhook secret. También enviamos X-Konnect-Event: lead.created. Responde 2xx en < 5s.",
-        "Camino recomendado hoy: Konnect webhook → Zapier/Make → Square o QuickBooks Online (crear cliente/factura). OAuth nativo Square/QB es roadmap (Fase 2).",
+        "Cuando ocurre un evento, Konnect hace POST a tu URL (si está habilitada en /app/integraciones).",
+        "Firma: header X-Konnect-Signature = HMAC-SHA256 hex del body con tu webhook secret. También X-Konnect-Event. Responde 2xx en < 5s.",
+        "Eventos: lead.created | estimate.accepted | invoice.created | invoice.paid. Camino típico: webhook → Zapier/Make → Square o QuickBooks.",
       ],
       code: `{
   "id": "evt_...",
@@ -56,12 +56,37 @@ export const developersEs = {
       codeLang: "json",
     },
     {
+      id: "estimates",
+      title: "Presupuestos y facturas (nativos)",
+      body: [
+        "En Pro/Premium puedes crear presupuestos en un deal, enviarlos por email o WhatsApp (enlace /p/{token}) y el cliente puede aceptar.",
+        "Al aceptar se crea una factura PENDING; el dueño puede marcarla pagada. Cobro con tarjeta nativo (Stripe Connect / Square OAuth) es roadmap.",
+        "Webhooks útiles: estimate.accepted, invoice.created, invoice.paid — para crear Invoice en Square/QB vía Zapier.",
+      ],
+      code: `{
+  "id": "evt_..._accepted",
+  "type": "estimate.accepted",
+  "created_at": "2026-07-25T16:00:00.000Z",
+  "data": {
+    "estimate_id": "clx...",
+    "invoice_id": "clx...",
+    "business_id": "clx...",
+    "business_slug": "all-in-remodeling",
+    "deal_id": "clx...",
+    "number": 12,
+    "total": 2500,
+    "currency": "USD"
+  }
+}`,
+      codeLang: "json",
+    },
+    {
       id: "square-qb",
       title: "Square y QuickBooks",
       body: [
-        "Square: usa el webhook lead.created en Zapier (“Catch Hook”) y crea Customer/Invoice en Square. No hay OAuth nativo en Konnect todavía.",
-        "QuickBooks Online: mismo flujo — webhook → Make/Zapier → Create Customer / Estimate. Solicita early access OAuth a developers@kmd.agency si necesitas sync nativo.",
-        "Evento futuro (roadmap): deal.won para facturar solo deals cerrados.",
+        "Square: usa lead.created o estimate.accepted / invoice.created en Zapier (“Catch Hook”) y crea Customer/Invoice en Square.",
+        "QuickBooks Online: mismo flujo — webhook → Make/Zapier → Create Customer / Estimate / Invoice.",
+        "OAuth nativo Square/QB es roadmap (Fase 2).",
       ],
     },
     {
@@ -133,11 +158,11 @@ export const developersEn = {
     },
     {
       id: "webhooks",
-      title: "Outbound webhooks (leads → Square / QuickBooks / Zapier)",
+      title: "Outbound webhooks (leads & estimates → Zapier)",
       body: [
-        "When a lead is created via El Puente, Konnect POSTs to your URL (if enabled in /app/integraciones).",
-        "Signature: X-Konnect-Signature = hex HMAC-SHA256 of the body with your webhook secret. Also X-Konnect-Event: lead.created. Return 2xx within 5s.",
-        "Recommended path today: Konnect webhook → Zapier/Make → Square or QuickBooks Online. Native Square/QB OAuth is Phase 2 roadmap.",
+        "When an event occurs, Konnect POSTs to your URL (if enabled in /app/integraciones).",
+        "Signature: X-Konnect-Signature = hex HMAC-SHA256 of the body with your webhook secret. Also X-Konnect-Event. Return 2xx within 5s.",
+        "Events: lead.created | estimate.accepted | invoice.created | invoice.paid. Typical path: webhook → Zapier/Make → Square or QuickBooks.",
       ],
       code: `{
   "id": "evt_...",
@@ -157,12 +182,37 @@ export const developersEn = {
       codeLang: "json",
     },
     {
+      id: "estimates",
+      title: "Native estimates & invoices",
+      body: [
+        "On Pro/Premium you can create estimates on a deal, send them by email or WhatsApp (/p/{token}), and the client can accept.",
+        "Accepting creates a PENDING invoice; the owner can mark it paid. Native card capture (Stripe Connect / Square OAuth) is roadmap.",
+        "Useful webhooks: estimate.accepted, invoice.created, invoice.paid — to create Square/QB invoices via Zapier.",
+      ],
+      code: `{
+  "id": "evt_..._accepted",
+  "type": "estimate.accepted",
+  "created_at": "2026-07-25T16:00:00.000Z",
+  "data": {
+    "estimate_id": "clx...",
+    "invoice_id": "clx...",
+    "business_id": "clx...",
+    "business_slug": "all-in-remodeling",
+    "deal_id": "clx...",
+    "number": 12,
+    "total": 2500,
+    "currency": "USD"
+  }
+}`,
+      codeLang: "json",
+    },
+    {
       id: "square-qb",
       title: "Square and QuickBooks",
       body: [
-        "Square: point lead.created at a Zapier Catch Hook and create Customer/Invoice in Square. No native OAuth in Konnect yet.",
-        "QuickBooks Online: same flow — webhook → Make/Zapier → Create Customer / Estimate. Request native OAuth early access at developers@kmd.agency.",
-        "Future event (roadmap): deal.won to invoice only closed deals.",
+        "Square: point lead.created or estimate.accepted / invoice.created at a Zapier Catch Hook and create Customer/Invoice.",
+        "QuickBooks Online: same flow — webhook → Make/Zapier → Create Customer / Estimate / Invoice.",
+        "Native Square/QB OAuth is Phase 2 roadmap.",
       ],
     },
     {

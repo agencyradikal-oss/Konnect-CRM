@@ -16,6 +16,8 @@ export type PlanLimits = {
   googleBusinessProfile: boolean;
   /** Booking público desde ficha */
   publicBooking: boolean;
+  /** Presupuestos y facturas nativos */
+  estimates: boolean;
 };
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
@@ -31,6 +33,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     dayRoutes: false,
     googleBusinessProfile: false,
     publicBooking: false,
+    estimates: false,
   },
   PRO: {
     leadsPerMonth: null,
@@ -44,6 +47,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     dayRoutes: false,
     googleBusinessProfile: false,
     publicBooking: false,
+    estimates: true,
   },
   PREMIUM: {
     leadsPerMonth: null,
@@ -57,6 +61,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     dayRoutes: true,
     googleBusinessProfile: true,
     publicBooking: true,
+    estimates: true,
   },
 };
 
@@ -106,6 +111,7 @@ export const PLAN_CATALOG = [
       "Badge Verificado (tras revisión)",
       "CRM ilimitado",
       "Importar CSV",
+      "Presupuestos y facturas",
       "Hasta 3 usuarios",
       "Google Calendar (citas)",
     ],

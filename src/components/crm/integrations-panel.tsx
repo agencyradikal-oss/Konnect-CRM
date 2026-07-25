@@ -116,9 +116,10 @@ export function IntegrationsPanel({ initial }: { initial: IntegrationsInitial })
               <Webhook className="size-5" />
             </span>
             <div>
-              <CardTitle>Webhook de salida (lead.created)</CardTitle>
+              <CardTitle>Webhook de salida</CardTitle>
               <CardDescription>
-                Envía cada lead de El Puente a Zapier, Make, Square o QuickBooks.
+                Eventos: lead.created, estimate.accepted, invoice.created,
+                invoice.paid → Zapier, Make, Square o QuickBooks.
                 Firma: header <code className="text-xs">X-Konnect-Signature</code>.
               </CardDescription>
             </div>

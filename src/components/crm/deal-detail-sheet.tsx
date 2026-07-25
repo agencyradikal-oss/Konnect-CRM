@@ -24,6 +24,7 @@ import {
   updateDeal,
 } from "@/actions/crm";
 import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
+import { DealEstimatesPanel } from "@/components/crm/deal-estimates-panel";
 import type { DealCardData } from "@/lib/deals";
 import { formatMoney } from "@/lib/date-range";
 import { cn } from "@/lib/utils";
@@ -32,10 +33,12 @@ export function DealDetailSheet({
   deal,
   open,
   onOpenChange,
+  canUseEstimates = false,
 }: {
   deal: DealCardData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canUseEstimates?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
@@ -153,6 +156,11 @@ export function DealDetailSheet({
               }}
             />
           </div>
+
+          <DealEstimatesPanel
+            dealId={deal.id}
+            canUseEstimates={canUseEstimates}
+          />
 
           <div className="space-y-2">
             <Label>Agregar nota / llamada</Label>

@@ -97,6 +97,8 @@ model Business {
   googleConnections    GoogleConnection[]
   appointments         Appointment[]
   apiKeys              BusinessApiKey[]
+  estimates            Estimate[]
+  invoices             Invoice[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
@@ -245,6 +247,8 @@ model Contact {
   deals      Deal[]
   leads      Lead[]
   appointments Appointment[]
+  estimates  Estimate[]
+  invoices   Invoice[]
   createdAt  DateTime @default(now())
 
   @@index([businessId])
@@ -265,11 +269,111 @@ model Deal {
   activities    Activity[]
   leads         Lead[]
   appointments  Appointment[]
+  estimates     Estimate[]
+  invoices      Invoice[]
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   @@index([businessId, stage])
   @@index([contactId])
+}
+
+// ============ Presupuestos / Facturas ============
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  VOID
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  VOID
+}
+
+model Estimate {
+  id                   String         @id @default(cuid())
+  businessId           String
+  business             Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dealId               String?
+  deal                 Deal?          @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contactId            String?
+  contact              Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  number               Int
+  status               EstimateStatus @default(DRAFT)
+  currency             String         @default("USD")
+  taxRate              Decimal        @default(0) @db.Decimal(5, 2)
+  taxAmount            Decimal        @default(0) @db.Decimal(12, 2)
+  subtotal             Decimal        @default(0) @db.Decimal(12, 2)
+  total                Decimal        @default(0) @db.Decimal(12, 2)
+  notes                String?        @db.Text
+  validUntil           DateTime?
+  publicTokenHash      String?
+  publicTokenExpiresAt DateTime?
+  sentAt               DateTime?
+  viewedAt             DateTime?
+  acceptedAt           DateTime?
+  rejectedAt           DateTime?
+  lineItems            DocumentLineItem[]
+  invoice              Invoice?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@unique([businessId, number])
+  @@index([businessId, status])
+  @@index([dealId])
+  @@index([contactId])
+  @@index([publicTokenHash])
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  businessId  String
+  business    Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dealId      String?
+  deal        Deal?         @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contactId   String?
+  contact     Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  estimateId  String?       @unique
+  estimate    Estimate?     @relation(fields: [estimateId], references: [id], onDelete: SetNull)
+  number      Int
+  status      InvoiceStatus @default(PENDING)
+  currency    String        @default("USD")
+  taxRate     Decimal       @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  subtotal    Decimal       @default(0) @db.Decimal(12, 2)
+  total       Decimal       @default(0) @db.Decimal(12, 2)
+  notes       String?       @db.Text
+  paidAt      DateTime?
+  lineItems   DocumentLineItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([businessId, number])
+  @@index([businessId, status])
+  @@index([dealId])
+  @@index([contactId])
+}
+
+model DocumentLineItem {
+  id          String    @id @default(cuid())
+  estimateId  String?
+  estimate    Estimate? @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  invoiceId   String?
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal   @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal   @default(0) @db.Decimal(12, 2)
+  amount      Decimal   @default(0) @db.Decimal(12, 2)
+  sortOrder   Int       @default(0)
+
+  @@index([estimateId])
+  @@index([invoiceId])
 }
 
 enum DealStage {

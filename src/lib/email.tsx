@@ -8,6 +8,7 @@ import { BusinessApprovedEmail } from "@/emails/business-approved";
 import { BusinessClaimInviteEmail } from "@/emails/business-claim-invite";
 import { NewLeadEmail } from "@/emails/new-lead";
 import { WeeklyLeadsEmail } from "@/emails/weekly-leads";
+import { EstimateSentEmail } from "@/emails/estimate-sent";
 import { sanitizeUserText } from "@/lib/sanitize";
 import { CLAIM_TOKEN_TTL_DAYS } from "@/lib/business-claim";
 
@@ -91,6 +92,31 @@ export async function sendBusinessClaimInviteEmail(params: {
       businessName: sanitizeUserText(params.businessName, 120),
       claimUrl,
       expiresInDays: CLAIM_TOKEN_TTL_DAYS,
+    }),
+  });
+}
+
+export async function sendEstimateEmail(params: {
+  to: string;
+  businessName: string;
+  estimateNumber: number;
+  totalLabel: string;
+  token: string;
+  clientName?: string | null;
+}) {
+  const publicUrl = `${getAppBaseUrl()}/p/${params.token}`;
+  await send({
+    to: params.to,
+    subject: `Presupuesto #${params.estimateNumber} — ${sanitizeUserText(params.businessName, 80)}`,
+    logTag: "presupuesto",
+    react: createElement(EstimateSentEmail, {
+      businessName: sanitizeUserText(params.businessName, 120),
+      estimateNumber: params.estimateNumber,
+      totalLabel: params.totalLabel,
+      publicUrl,
+      clientName: params.clientName
+        ? sanitizeUserText(params.clientName, 80)
+        : null,
     }),
   });
 }
