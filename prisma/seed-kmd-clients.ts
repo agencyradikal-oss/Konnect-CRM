@@ -26,182 +26,136 @@ type KmdClient = {
   verified?: boolean;
 };
 
-/** Clientes del portafolio KMD Agency — fichas ACTIVE sin dueño. */
+/** Fichas de directorio ACTIVE sin dueño (origen portafolio; copy público neutro). */
 export const kmdPortfolioClients: KmdClient[] = [
-  {
-    slug: "aj-mountain-countertops",
-    name: "AJ Mountain Countertops",
-    description:
-      "Fabricación e instalación de countertops de granito, cuarzo y mármol en el metro de Atlanta. Socio KMD Agency.",
-    categorySlug: "countertops-piedra",
-    city: "Atlanta",
-    zip: "30301",
-    plan: PlanEnum.PREMIUM,
-    featured: true,
-    verified: true,
-  },
   {
     slug: "all-in-remodeling",
     name: "All In Remodeling",
     description:
-      "Remodelación de cocinas, baños y proyectos residenciales. Socio KMD Agency.",
+      "Remodelación de cocinas, baños y proyectos residenciales en el metro de Atlanta.",
     categorySlug: "remodelacion-construccion",
     city: "Atlanta",
     zip: "30301",
-    plan: PlanEnum.PREMIUM,
-    featured: true,
-    verified: true,
   },
   {
     slug: "anticruz-boards",
     name: "Anticruz Boards",
-    description:
-      "Tablas y productos de diseño. Identidad visual y presencia digital con KMD Agency.",
+    description: "Tablas y productos de diseño en Atlanta.",
     categorySlug: "marketing",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "contigo-peru",
     name: "Contigo Peru",
-    description:
-      "Restaurante peruano. Sabores auténticos en Atlanta. Socio KMD Agency.",
+    description: "Restaurante peruano en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "cubicum",
     name: "Cubicum",
-    description:
-      "Diseño y marca. Proyectos de identidad y web con KMD Agency.",
+    description: "Diseño y marca en Atlanta.",
     categorySlug: "marketing",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "edwards-hodges-law",
     name: "Edwards & Hodges Law",
-    description:
-      "Servicios legales. Presencia digital y marca con KMD Agency.",
+    description: "Servicios legales en Atlanta.",
     categorySlug: "legal",
     city: "Atlanta",
     zip: "30301",
-    plan: PlanEnum.PRO,
-    verified: true,
   },
   {
     slug: "ezzeta",
     name: "Ezzeta",
-    description:
-      "Producto y marca. Diseño y marketing con KMD Agency.",
+    description: "Producto y marca en Atlanta.",
     categorySlug: "marketing",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "fresco-cantina",
     name: "Fresco Cantina",
-    description:
-      "Cantina y cocina. Experiencia gastronómica en Atlanta. Socio KMD Agency.",
+    description: "Cantina y cocina en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "kjr-auto",
     name: "KJR Auto",
-    description:
-      "Servicios automotrices. Marca y marketing digital con KMD Agency.",
+    description: "Servicios automotrices en Atlanta.",
     categorySlug: "automotriz",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "la-mera-mera",
     name: "La Mera Mera",
-    description:
-      "Restaurante. Sabores mexicanos y presencia de marca con KMD Agency.",
+    description: "Restaurante de cocina mexicana en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "moba-coffee-company",
     name: "Moba Coffee Company",
-    description:
-      "Café y experiencia. Branding y digital con KMD Agency.",
+    description: "Café en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "pmp-running",
     name: "PMP Running",
-    description:
-      "Running y comunidad. Identidad y campañas con KMD Agency.",
+    description: "Running y comunidad en Atlanta.",
     categorySlug: "marketing",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "seis-hermanas-restaurant",
     name: "Seis Hermanas Restaurant",
-    description:
-      "Restaurante familiar. Marca y presencia digital con KMD Agency.",
+    description: "Restaurante familiar en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "talpa",
     name: "Talpa",
-    description:
-      "Restaurante. Experiencia culinaria y marketing con KMD Agency.",
+    description: "Restaurante en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "the-coffee-store",
     name: "The Coffee Store",
-    description:
-      "Café y retail. Diseño de app/marca con KMD Agency.",
+    description: "Café y retail en Atlanta.",
     categorySlug: "restaurantes",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "the-donas-cleaning",
     name: "The Doñas Cleaning",
-    description:
-      "Limpieza residencial y comercial. Marca y web con KMD Agency.",
+    description: "Limpieza residencial y comercial en Atlanta.",
     categorySlug: "limpieza",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
   {
     slug: "dejavu-atlanta",
     name: "Dejavu Atlanta",
-    description:
-      "Retail Atlanta. Campañas y presencia digital con KMD Agency.",
+    description: "Retail en Atlanta.",
     categorySlug: "marketing",
     city: "Atlanta",
     zip: "30301",
-    verified: true,
   },
 ];
 
@@ -229,9 +183,10 @@ export async function seedKmdClients(
         ...(data.address !== undefined ? { address: data.address } : {}),
         ...(data.phone !== undefined ? { phone: data.phone } : {}),
         ...(data.website !== undefined ? { website: data.website } : {}),
-        ...(data.plan !== undefined ? { plan: data.plan } : {}),
-        ...(data.featured !== undefined ? { featured: data.featured } : {}),
-        ...(data.verified !== undefined ? { verified: data.verified } : {}),
+        // Neutro en directorio: sin badges de socio / featured por defecto.
+        plan: data.plan ?? PlanEnum.FREE,
+        featured: data.featured ?? false,
+        verified: data.verified ?? false,
         status: BusinessStatus.ACTIVE,
       },
       create: {
@@ -254,4 +209,9 @@ export async function seedKmdClients(
       },
     });
   }
+
+  // AJ Mountain: perfil personal, no seed de portafolio.
+  await prisma.business.deleteMany({
+    where: { slug: "aj-mountain-countertops", claimedAt: null },
+  });
 }
