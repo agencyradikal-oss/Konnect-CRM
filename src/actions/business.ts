@@ -11,6 +11,7 @@ import {
   normalizeSocialUrl,
   socialsForDb,
 } from "@/lib/business-socials";
+import { normalizeClaimEmail } from "@/lib/business-claim";
 
 /** Solo acepta URLs del store Blob de Vercel (subidas vía /api/blob/upload). */
 function parseBlobUrl(raw: FormDataEntryValue | null): string | null {
@@ -82,6 +83,29 @@ export async function registerBusinessFull(formData: FormData) {
     });
     if (dbUser?.businessId || session.user.businessId) {
       return { ok: false as const, error: "Ya tienes un negocio registrado." };
+    }
+
+    if (session.user.email) {
+      const claimEmail = normalizeClaimEmail(session.user.email);
+      const pendingClaim = await prisma.business.findFirst({
+        where: {
+          claimEmail,
+          claimedAt: null,
+          claimTokenHash: { not: null },
+          users: { none: { role: "BUSINESS_OWNER" } },
+        },
+        select: { name: true, claimTokenExpiresAt: true },
+      });
+      if (
+        pendingClaim &&
+        pendingClaim.claimTokenExpiresAt &&
+        pendingClaim.claimTokenExpiresAt.getTime() > Date.now()
+      ) {
+        return {
+          ok: false as const,
+          error: `Ya tienes un negocio para reclamar («${pendingClaim.name}»). Abre el enlace de la invitación por email en lugar de registrar uno nuevo.`,
+        };
+      }
     }
 
     let data;

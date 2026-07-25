@@ -79,6 +79,12 @@ model Business {
   webhookSecret        String?
   webhookEnabled       Boolean        @default(false)
   status               BusinessStatus @default(PENDING)
+  /// Email autorizado para reclamar el negocio (no público en ficha).
+  claimEmail           String?
+  /// SHA-256 hex del token de invitación de reclamo.
+  claimTokenHash       String?
+  claimTokenExpiresAt  DateTime?
+  claimedAt            DateTime?
   users                User[]
   leads                Lead[]
   contacts             Contact[]
@@ -98,6 +104,8 @@ model Business {
   @@index([plan, featured])
   @@index([stripeCustomerId])
   @@index([planCourtesy])
+  @@index([claimEmail])
+  @@index([claimTokenHash])
 }
 
 /// API keys de partners (Authorization: Bearer kn_live_…).

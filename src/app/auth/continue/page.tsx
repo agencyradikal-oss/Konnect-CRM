@@ -11,6 +11,11 @@ function safeCallbackUrl(raw: string | null) {
   return raw;
 }
 
+/** Claim u otros flujos donde no hay negocio aún pero el callback es válido. */
+function allowsNoBusiness(callbackUrl: string) {
+  return callbackUrl.startsWith("/reclamar/");
+}
+
 /**
  * Post-login/signup. Si el servidor ya ve sesión → redirect inmediato.
  * Si no (handshake OAuth/proxy pendiente) → cliente espera y reintenta.
@@ -25,7 +30,7 @@ export default async function AuthContinuePage({
 
   const session = await auth();
   if (session?.user) {
-    if (!session.user.businessId) {
+    if (!session.user.businessId && !allowsNoBusiness(callbackUrl)) {
       redirect("/registrar-empresa");
     }
     redirect(callbackUrl);

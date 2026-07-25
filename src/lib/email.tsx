@@ -5,9 +5,11 @@ import type { LeadSource } from "@prisma/client";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { WelcomeEmail } from "@/emails/welcome";
 import { BusinessApprovedEmail } from "@/emails/business-approved";
+import { BusinessClaimInviteEmail } from "@/emails/business-claim-invite";
 import { NewLeadEmail } from "@/emails/new-lead";
 import { WeeklyLeadsEmail } from "@/emails/weekly-leads";
 import { sanitizeUserText } from "@/lib/sanitize";
+import { CLAIM_TOKEN_TTL_DAYS } from "@/lib/business-claim";
 
 const from = "Konnect <notificaciones@kmd.agency>";
 
@@ -71,6 +73,24 @@ export async function sendBusinessApprovedEmail(params: {
     react: createElement(BusinessApprovedEmail, {
       businessName: sanitizeUserText(params.businessName, 120),
       profileUrl,
+    }),
+  });
+}
+
+export async function sendBusinessClaimInviteEmail(params: {
+  to: string;
+  businessName: string;
+  token: string;
+}) {
+  const claimUrl = `${getAppBaseUrl()}/reclamar/${params.token}`;
+  await send({
+    to: params.to,
+    subject: `Reclama tu negocio en Konnect: ${sanitizeUserText(params.businessName, 80)}`,
+    logTag: "reclamo",
+    react: createElement(BusinessClaimInviteEmail, {
+      businessName: sanitizeUserText(params.businessName, 120),
+      claimUrl,
+      expiresInDays: CLAIM_TOKEN_TTL_DAYS,
     }),
   });
 }

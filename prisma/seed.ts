@@ -269,7 +269,12 @@ async function main() {
     },
   });
 
-  console.log("Seed completo: 12 categorías, 10 negocios, 3 usuarios.");
+  const { seedKmdClients } = await import("./seed-kmd-clients");
+  await seedKmdClients(prisma, categoryMap);
+
+  console.log(
+    "Seed completo: categorías, negocios demo, usuarios y clientes KMD.",
+  );
 }
 
 main()

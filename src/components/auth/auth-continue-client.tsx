@@ -80,9 +80,11 @@ export function AuthContinueClient({ callbackUrl }: { callbackUrl: string }) {
           }
 
           if (status.prisma === "ok") {
-            const dest = status.hasBusinessId
-              ? callbackUrl
-              : "/registrar-empresa";
+            const claimFlow = callbackUrl.startsWith("/reclamar/");
+            const dest =
+              status.hasBusinessId || claimFlow
+                ? callbackUrl
+                : "/registrar-empresa";
             window.location.replace(dest);
             return;
           }
