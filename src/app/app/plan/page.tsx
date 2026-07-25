@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { PLAN_CATALOG } from "@/lib/plans";
+import { PLAN_CATALOG, effectivePlan } from "@/lib/plans";
 import { isStripeConfigured } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +36,7 @@ export default async function PlanPage({
 
   const stripeReady = isStripeConfigured();
   const courtesy = business.planCourtesy;
+  const currentPlan = effectivePlan(business);
   const rank = { FREE: 0, PRO: 1, PREMIUM: 2 } as const;
 
   return (
@@ -45,7 +46,7 @@ export default async function PlanPage({
           <h1 className="text-2xl font-bold tracking-tight">Plan y facturación</h1>
           <p className="text-muted-foreground">
             Tu plan actual:{" "}
-            <Badge className="ml-1">{business.plan}</Badge>
+            <Badge className="ml-1">{currentPlan}</Badge>
             {courtesy && (
               <Badge variant="secondary" className="ml-2">
                 Cortesía lifetime
@@ -78,9 +79,9 @@ export default async function PlanPage({
 
       <div className="grid gap-4 lg:grid-cols-3">
         {PLAN_CATALOG.map((plan) => {
-          const isCurrent = plan.id === business.plan;
-          const isUpgrade = rank[plan.id] > rank[business.plan];
-          const isDowngrade = rank[plan.id] < rank[business.plan];
+          const isCurrent = plan.id === currentPlan;
+          const isUpgrade = rank[plan.id] > rank[currentPlan];
+          const isDowngrade = rank[plan.id] < rank[currentPlan];
 
           return (
             <Card

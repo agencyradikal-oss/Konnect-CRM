@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { effectivePlan } from "@/lib/plans";
 
 /**
  * Tenant actual del CRM.
@@ -24,9 +25,12 @@ export async function getCurrentBusiness() {
     redirect("/registrar-empresa");
   }
 
+  // Cortesía: el CRM debe ver PREMIUM aunque el campo plan esté desfasado.
+  const plan = effectivePlan(business);
+
   return {
     session,
     businessId: business.id,
-    business,
+    business: plan === business.plan ? business : { ...business, plan },
   };
 }

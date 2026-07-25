@@ -60,8 +60,23 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
 };
 
+/** Plan efectivo: cortesía lifetime siempre cuenta como PREMIUM. */
+export function effectivePlan(business: {
+  plan: Plan;
+  planCourtesy?: boolean | null;
+}): Plan {
+  return business.planCourtesy ? "PREMIUM" : business.plan;
+}
+
 export function getPlanLimits(plan: Plan): PlanLimits {
   return PLAN_LIMITS[plan] ?? PLAN_LIMITS.FREE;
+}
+
+export function getBusinessPlanLimits(business: {
+  plan: Plan;
+  planCourtesy?: boolean | null;
+}): PlanLimits {
+  return getPlanLimits(effectivePlan(business));
 }
 
 export const PLAN_CATALOG = [

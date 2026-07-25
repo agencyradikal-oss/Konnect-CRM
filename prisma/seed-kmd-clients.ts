@@ -173,7 +173,7 @@ export async function seedKmdClients(
     const { categorySlug: _c, ...data } = biz;
     await prisma.business.upsert({
       where: { slug: biz.slug },
-      // No pisar claimEmail / claimedAt / dueños si ya existen.
+      // No pisar claim*, plan, cortesía, featured ni dueños.
       update: {
         name: data.name,
         description: data.description,
@@ -183,10 +183,6 @@ export async function seedKmdClients(
         ...(data.address !== undefined ? { address: data.address } : {}),
         ...(data.phone !== undefined ? { phone: data.phone } : {}),
         ...(data.website !== undefined ? { website: data.website } : {}),
-        // Neutro en directorio: sin badges de socio / featured por defecto.
-        plan: data.plan ?? PlanEnum.FREE,
-        featured: data.featured ?? false,
-        verified: data.verified ?? false,
         status: BusinessStatus.ACTIVE,
       },
       create: {
