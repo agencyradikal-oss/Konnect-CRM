@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { getPlanLimits } from "@/lib/plans";
+import { parseBusinessSocials } from "@/lib/business-socials";
 import { ProfileForm } from "@/components/crm/profile-form";
 import { defaultHours, type WeekHours } from "@/components/business/hours-editor";
 
@@ -56,6 +57,7 @@ export default async function PerfilPage() {
               address: business.address ?? "",
               city: business.city ?? "",
               zip: business.zip ?? "",
+              socials: parseBusinessSocials(business.socials),
               logoUrl: business.logoUrl,
               coverUrl: business.coverUrl,
               gallery: business.gallery,

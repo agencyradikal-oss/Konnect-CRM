@@ -18,6 +18,11 @@ import { updateBusinessProfile } from "@/actions/business";
 import { HoursEditor, defaultHours, type WeekHours } from "@/components/business/hours-editor";
 import { ImageUpload } from "@/components/business/image-upload";
 import { GalleryManager } from "@/components/crm/gallery-manager";
+import {
+  SOCIAL_NETWORKS,
+  type BusinessSocials,
+  type SocialNetworkKey,
+} from "@/lib/business-socials";
 
 type CategoryOption = { id: string; nameEs: string };
 
@@ -33,6 +38,7 @@ type ProfileInitial = {
   address: string;
   city: string;
   zip: string;
+  socials: BusinessSocials;
   logoUrl: string | null;
   coverUrl: string | null;
   gallery: string[];
@@ -63,9 +69,14 @@ export function ProfileForm({
   const [address, setAddress] = useState(initial.address);
   const [city, setCity] = useState(initial.city);
   const [zip, setZip] = useState(initial.zip);
+  const [socials, setSocials] = useState<BusinessSocials>(initial.socials ?? {});
   const [hours, setHours] = useState<WeekHours>(initial.hours ?? defaultHours);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  function setSocial(key: SocialNetworkKey, value: string) {
+    setSocials((prev) => ({ ...prev, [key]: value }));
+  }
 
   function toggleLanguage(lang: string) {
     setLanguages((prev) =>
@@ -88,6 +99,15 @@ export function ProfileForm({
     formData.set("address", address);
     formData.set("city", city);
     formData.set("zip", zip);
+    formData.set(
+      "socials",
+      JSON.stringify({
+        facebook: socials.facebook ?? "",
+        instagram: socials.instagram ?? "",
+        tiktok: socials.tiktok ?? "",
+        linkedin: socials.linkedin ?? "",
+      }),
+    );
     formData.set("hours", JSON.stringify(hours));
     if (logoUrl) formData.set("logoUrl", logoUrl);
     if (coverUrl) formData.set("coverUrl", coverUrl);
@@ -190,6 +210,30 @@ export function ProfileForm({
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-sm font-medium">Redes sociales</h4>
+            <p className="text-xs text-muted-foreground">
+              Opcional. Se muestran como iconos en tu perfil público.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {SOCIAL_NETWORKS.map((net) => (
+              <div key={net.key} className="space-y-2">
+                <Label htmlFor={`social-${net.key}`}>{net.label}</Label>
+                <Input
+                  id={`social-${net.key}`}
+                  type="text"
+                  inputMode="url"
+                  autoComplete="url"
+                  placeholder={net.placeholder}
+                  value={socials[net.key] ?? ""}
+                  onChange={(e) => setSocial(net.key, e.target.value)}
+                />
+              </div>
+            ))}
           </div>
         </div>
         <div className="space-y-2">

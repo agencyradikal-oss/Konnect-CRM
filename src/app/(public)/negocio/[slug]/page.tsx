@@ -8,8 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getAppBaseUrl } from "@/lib/app-url";
+import {
+  parseBusinessSocials,
+  socialsSameAs,
+} from "@/lib/business-socials";
 import { ContactForm } from "@/components/directory/contact-form";
 import { ClickActions } from "@/components/directory/click-actions";
+import { BusinessSocialLinks } from "@/components/directory/business-social-links";
 import { ProfileViewTracker } from "@/components/directory/profile-view-tracker";
 import { ReviewForm } from "@/components/directory/review-form";
 import {
@@ -77,6 +82,8 @@ export default async function NegocioPage({ params }: Props) {
 
   const baseUrl = getAppBaseUrl();
   const categoryHref = `/categoria/${business.category.slug}`;
+  const socials = parseBusinessSocials(business.socials);
+  const sameAs = socialsSameAs(socials);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -105,6 +112,7 @@ export default async function NegocioPage({ params }: Props) {
     ...(business.logoUrl || business.coverUrl
       ? { image: business.logoUrl || business.coverUrl || undefined }
       : {}),
+    ...(sameAs.length ? { sameAs } : {}),
     ...(avgRating && {
       aggregateRating: {
         "@type": "AggregateRating",
@@ -223,6 +231,7 @@ export default async function NegocioPage({ params }: Props) {
                   <span className="truncate">{business.website}</span>
                 </a>
               )}
+              <BusinessSocialLinks socials={socials} />
             </div>
           </div>
 

@@ -18,6 +18,11 @@ import {
   assessClerkFapiHealth,
   decodeClerkFrontendApiHost,
 } from "@/lib/clerk-fapi";
+import {
+  normalizeSocialUrl,
+  socialsForDb,
+  socialsList,
+} from "@/lib/business-socials";
 
 describe("auth status payloads", () => {
   it("reports skipped prisma when clerk missing", () => {
@@ -76,6 +81,25 @@ describe("clerk FAPI vs proxy invariant", () => {
     });
     expect(h.isCustomFapi).toBe(false);
     expect(h.mismatch).toBe(true);
+  });
+});
+
+describe("business socials", () => {
+  it("normalizes urls without protocol", () => {
+    expect(normalizeSocialUrl("instagram.com/foo")).toBe(
+      "https://instagram.com/foo",
+    );
+  });
+
+  it("builds db payload and list", () => {
+    const db = socialsForDb({
+      facebook: "https://facebook.com/biz",
+      instagram: "",
+      tiktok: "",
+      linkedin: "",
+    });
+    expect(db).toEqual({ facebook: "https://facebook.com/biz" });
+    expect(socialsList(db!).map((s) => s.key)).toEqual(["facebook"]);
   });
 });
 

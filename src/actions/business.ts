@@ -1,11 +1,16 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth, requireBusinessSession } from "@/lib/auth";
 import { syncClerkUserMetadata } from "@/lib/clerk-sync";
 import { geocodeAddress } from "@/lib/geocode";
+import {
+  normalizeSocialUrl,
+  socialsForDb,
+} from "@/lib/business-socials";
 
 /** Solo acepta URLs del store Blob de Vercel (subidas vía /api/blob/upload). */
 function parseBlobUrl(raw: FormDataEntryValue | null): string | null {
@@ -225,6 +230,21 @@ export async function updateBusinessProfile(formData: FormData) {
     return { ok: false as const, error: "Datos inválidos." };
   }
 
+  let socialsRaw: unknown = {};
+  try {
+    socialsRaw = JSON.parse(String(formData.get("socials") ?? "{}"));
+  } catch {
+    socialsRaw = {};
+  }
+  if (typeof socialsRaw === "object" && socialsRaw && !Array.isArray(socialsRaw)) {
+    for (const [k, v] of Object.entries(socialsRaw as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim() && !normalizeSocialUrl(v)) {
+        return { ok: false as const, error: `URL de ${k} inválida.` };
+      }
+    }
+  }
+  const socials = socialsForDb(socialsRaw);
+
   // Re-geocodificar solo si cambió la ubicación (o nunca se geocodificó)
   const locationChanged =
     data.address !== (current.address ?? "") ||
@@ -253,6 +273,7 @@ export async function updateBusinessProfile(formData: FormData) {
       city: data.city,
       zip: data.zip || null,
       hours: data.hours,
+      socials: socials ?? Prisma.DbNull,
       ...(coords && { lat: coords.lat, lng: coords.lng }),
       ...(logoUrl && { logoUrl }),
       ...(coverUrl && { coverUrl }),
