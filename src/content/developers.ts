@@ -18,17 +18,16 @@ export const developersEs = {
       id: "overview",
       title: "Visión general",
       body: [
-        "Hay dos capas distintas: (1) Stripe Billing — Konnect cobra al negocio por el plan Free/Pro/Premium; (2) integraciones del negocio — webhooks hacia Zapier/Make, Square, QuickBooks u otros sistemas.",
+        "Hay dos capas distintas: (1) suscripción Konnect al negocio (planes Free/Pro/Premium); (2) integraciones del negocio — webhooks hacia Zapier/Make, Square, QuickBooks u otros sistemas.",
         "Configura tu webhook de salida en /app/integraciones. La API REST de lectura está en early access.",
       ],
     },
     {
-      id: "stripe-billing",
-      title: "Stripe Billing (suscripción Konnect)",
+      id: "subscription",
+      title: "Planes Konnect (suscripción del negocio)",
       body: [
-        "Ya en producción: Checkout + Customer Portal + webhook firmado que actualiza Business.plan.",
-        "Variables: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO, STRIPE_PRICE_PREMIUM. Endpoint: POST /api/webhooks/stripe.",
-        "Esto NO es Stripe Connect ni cobro a clientes finales del directorio. El dueño gestiona su plan en /app/plan o /app/integraciones.",
+        "Konnect cobra al negocio por el plan Free/Pro/Premium — no a los visitantes del directorio ni vía Stripe Connect.",
+        "Ver /precios. El dueño gestiona la suscripción en /app/plan tras iniciar sesión.",
       ],
     },
     {
@@ -120,17 +119,16 @@ export const developersEn = {
       id: "overview",
       title: "Overview",
       body: [
-        "Two distinct layers: (1) Stripe Billing — Konnect charges the business for Free/Pro/Premium; (2) business integrations — outbound webhooks to Zapier/Make, Square, QuickBooks, or other systems.",
+        "Two distinct layers: (1) Konnect subscription for the business (Free/Pro/Premium plans); (2) business integrations — outbound webhooks to Zapier/Make, Square, QuickBooks, or other systems.",
         "Configure your outbound webhook at /app/integraciones. The read REST API is in early access.",
       ],
     },
     {
-      id: "stripe-billing",
-      title: "Stripe Billing (Konnect subscription)",
+      id: "subscription",
+      title: "Konnect plans (business subscription)",
       body: [
-        "In production: Checkout + Customer Portal + signed webhook that updates Business.plan.",
-        "Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO, STRIPE_PRICE_PREMIUM. Endpoint: POST /api/webhooks/stripe.",
-        "This is NOT Stripe Connect and not charging directory end-customers. Owners manage plans at /app/plan or /app/integraciones.",
+        "Konnect bills the business for Free/Pro/Premium — not directory visitors, and not via Stripe Connect.",
+        "See /precios. Owners manage the subscription at /app/plan after signing in.",
       ],
     },
     {
