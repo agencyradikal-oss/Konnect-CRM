@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Calendar, MapPin, ExternalLink } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,35 +21,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { createAppointment, cancelAppointment } from "@/actions/appointments";
+import { createAppointment } from "@/actions/appointments";
+import {
+  AgendaCalendar,
+  type AgendaAppointment,
+  type AgendaTask,
+} from "@/components/crm/agenda-calendar";
 
-export type AppointmentRow = {
-  id: string;
-  title: string;
-  type: string;
-  status: string;
-  startsAt: string;
-  endsAt: string;
-  address: string | null;
-  city: string | null;
-  mapsUrl: string | null;
-  googleEventId: string | null;
-};
+export type AppointmentRow = Omit<AgendaAppointment, "kind">;
 
-const TYPE_LABEL: Record<string, string> = {
-  MEASURE: "Medida",
-  VISIT: "Visita",
-  CALL: "Llamada",
-  OTHER: "Otro",
-};
+export type TaskRow = Omit<AgendaTask, "kind">;
 
 export function AppointmentsPanel({
   appointments,
+  tasks,
   canSyncCalendar,
   prefill,
 }: {
   appointments: AppointmentRow[];
+  tasks: TaskRow[];
   canSyncCalendar: boolean;
   prefill?: {
     title?: string;
@@ -90,12 +80,12 @@ export function AppointmentsPanel({
   }
 
   const linked =
-    prefill?.leadId || prefill?.dealId || prefill?.contactId
-      ? true
-      : false;
+    prefill?.leadId || prefill?.dealId || prefill?.contactId ? true : false;
 
   return (
     <div className="space-y-6">
+      <AgendaCalendar appointments={appointments} tasks={tasks} />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -208,68 +198,6 @@ export function AppointmentsPanel({
           </form>
         </CardContent>
       </Card>
-
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Próximas citas</h2>
-        {appointments.length === 0 && (
-          <p className="text-sm text-muted-foreground">Aún no hay citas.</p>
-        )}
-        {appointments.map((a) => (
-          <Card key={a.id}>
-            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{a.title}</p>
-                  <Badge variant="secondary">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-                  <Badge variant={a.status === "CANCELED" ? "outline" : "default"}>
-                    {a.status}
-                  </Badge>
-                  {a.googleEventId && (
-                    <Badge variant="outline">Calendar</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(a.startsAt).toLocaleString("es-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </p>
-                {(a.address || a.city) && (
-                  <p className="flex items-start gap-1 text-sm text-muted-foreground">
-                    <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                    {[a.address, a.city].filter(Boolean).join(", ")}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {a.mapsUrl && (
-                  <Button asChild size="sm" variant="outline">
-                    <a href={a.mapsUrl} target="_blank" rel="noopener noreferrer">
-                      Maps <ExternalLink className="size-3.5" />
-                    </a>
-                  </Button>
-                )}
-                {a.status === "SCHEDULED" && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={pending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        const res = await cancelAppointment({ id: a.id });
-                        if (res.ok) toast.success("Cita cancelada.");
-                        else toast.error(res.error ?? "Error");
-                      })
-                    }
-                  >
-                    Cancelar
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

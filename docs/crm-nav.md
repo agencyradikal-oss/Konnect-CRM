@@ -12,7 +12,7 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 | Leads | `/app/leads` |
 | Contactos | `/app/contactos` |
 | Deals | `/app/deals` |
-| Citas | `/app/citas` |
+| Calendario | `/app/citas` (citas + tareas con fecha; vistas mes/semana/día) |
 | Ruta del día | `/app/ruta` (Premium) |
 | Tareas | `/app/tareas` |
 | Analytics | `/app/analytics` |
@@ -21,12 +21,13 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 | Integraciones | `/app/integraciones` (Stripe, Google, API keys, webhooks) |
 | Plan | `/app/plan` |
 
-### Citas desde Lead / Deal
+### Calendario desde Lead / Deal
 
 - Leads: menú ⋮ → **Agendar cita…** ([`lead-row-actions.tsx`](../src/components/crm/lead-row-actions.tsx))
 - Deals: sheet del deal → **Agendar medida / visita** ([`deal-detail-sheet.tsx`](../src/components/crm/deal-detail-sheet.tsx))
 - Contactos: sheet del contacto → **Agendar medida / visita** ([`contacts-manager.tsx`](../src/components/crm/contacts-manager.tsx))
 - Dialog compartido: [`schedule-appointment-dialog.tsx`](../src/components/crm/schedule-appointment-dialog.tsx)
+- Vista agenda: [`agenda-calendar.tsx`](../src/components/crm/agenda-calendar.tsx) (mes / semana / día; citas + tareas)
 
 ### API partners
 

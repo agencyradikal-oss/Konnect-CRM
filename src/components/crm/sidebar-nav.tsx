@@ -26,7 +26,7 @@ const items = [
   { href: "/app/contactos", label: "Contactos", icon: Users },
   { href: "/app/deals", label: "Deals", icon: Handshake },
   { href: "/app/presupuestos", label: "Presupuestos", icon: FileText },
-  { href: "/app/citas", label: "Citas", icon: Calendar },
+  { href: "/app/citas", label: "Calendario", icon: Calendar },
   { href: "/app/ruta", label: "Ruta del día", icon: Route },
   { href: "/app/tareas", label: "Tareas", icon: CheckSquare },
   { href: "/app/analytics", label: "Analytics", icon: BarChart3 },

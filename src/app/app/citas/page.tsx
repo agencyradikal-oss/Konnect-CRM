@@ -5,8 +5,9 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { getPlanLimits } from "@/lib/plans";
 import { AppointmentsPanel } from "@/components/crm/appointments-panel";
 import { Button } from "@/components/ui/button";
+import { startOfMonth, startOfNextMonth } from "@/lib/date-range";
 
-export const metadata = { title: "Citas" } satisfies Metadata;
+export const metadata = { title: "Calendario" } satisfies Metadata;
 export const dynamic = "force-dynamic";
 
 export default async function CitasPage({
@@ -23,11 +24,32 @@ export default async function CitasPage({
   const limits = getPlanLimits(business.plan);
   const params = await searchParams;
 
-  const appointments = await prisma.appointment.findMany({
-    where: { businessId },
-    orderBy: { startsAt: "asc" },
-    take: 50,
-  });
+  const now = new Date();
+  // Margen amplio para navegar meses en el client sin refetch.
+  const rangeStart = startOfMonth(
+    new Date(now.getFullYear(), now.getMonth() - 2, 1),
+  );
+  const rangeEnd = startOfNextMonth(
+    new Date(now.getFullYear(), now.getMonth() + 4, 1),
+  );
+
+  const [appointments, tasks] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        businessId,
+        status: { not: "CANCELED" },
+        startsAt: { gte: rangeStart, lt: rangeEnd },
+      },
+      orderBy: { startsAt: "asc" },
+    }),
+    prisma.task.findMany({
+      where: {
+        businessId,
+        dueDate: { gte: rangeStart, lt: rangeEnd },
+      },
+      orderBy: { dueDate: "asc" },
+    }),
+  ]);
 
   let prefill: {
     title?: string;
@@ -101,9 +123,12 @@ export default async function CitasPage({
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Citas</h1>
+          <h1 className="text-2xl font-bold">Calendario</h1>
           <p className="text-muted-foreground">
-            Medidas y visitas con dirección, Maps y Google Calendar.
+            Citas, medidas, llamadas y tareas en una sola agenda.
+            {limits.googleCalendar
+              ? " Sync con Google Calendar disponible."
+              : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -133,6 +158,14 @@ export default async function CitasPage({
           mapsUrl: a.mapsUrl,
           googleEventId: a.googleEventId,
         }))}
+        tasks={tasks
+          .filter((t) => t.dueDate)
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            done: t.done,
+            dueDate: t.dueDate!.toISOString(),
+          }))}
       />
     </div>
   );

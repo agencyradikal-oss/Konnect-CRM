@@ -241,7 +241,7 @@ export async function toggleTask(input: unknown) {
     where: { id: task.id },
     data: { done: !task.done },
   });
-  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard");
+  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
   return { ok: true as const };
 }
 
@@ -271,7 +271,7 @@ export async function createTask(input: unknown) {
     },
   });
 
-  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard");
+  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
   return { ok: true as const };
 }
 

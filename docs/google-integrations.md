@@ -6,7 +6,7 @@ Konnect es la **fuente de verdad** del CRM. Google es canal operativo (calendari
 
 | Capacidad | Plan | Ruta CRM |
 |-----------|------|----------|
-| Citas locales + link Maps | Todos (sync Calendar = Pro+) | `/app/citas` |
+| Citas locales + agenda (mes/semana/día) + link Maps | Todos (sync Calendar = Pro+) | `/app/citas` |
 | Google Calendar OAuth | Pro / Premium | `/app/integraciones` |
 | Ruta del día / optimizar | Premium | `/app/ruta` |
 | Sync listing → GBP | Premium | Integraciones |
