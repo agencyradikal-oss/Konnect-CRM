@@ -9,6 +9,7 @@ import { BusinessClaimInviteEmail } from "@/emails/business-claim-invite";
 import { NewLeadEmail } from "@/emails/new-lead";
 import { WeeklyLeadsEmail } from "@/emails/weekly-leads";
 import { EstimateSentEmail } from "@/emails/estimate-sent";
+import { FollowUpEmail } from "@/emails/follow-up";
 import { sanitizeUserText } from "@/lib/sanitize";
 import { CLAIM_TOKEN_TTL_DAYS } from "@/lib/business-claim";
 
@@ -28,11 +29,11 @@ async function send(params: {
   subject: string;
   react: React.ReactElement;
   logTag: string;
-}) {
+}): Promise<boolean> {
   const resend = getResend();
   if (!resend) {
     console.warn(`[email] omitido (${params.logTag}):`, params.to);
-    return;
+    return false;
   }
 
   try {
@@ -43,8 +44,10 @@ async function send(params: {
       subject: params.subject,
       html,
     });
+    return true;
   } catch (error) {
     console.error(`[email] Falló ${params.logTag}:`, error);
+    return false;
   }
 }
 
@@ -171,6 +174,28 @@ export async function sendWeeklyLeadsEmail(params: {
       totalLeads: params.totalLeads,
       bySource: params.bySource,
       leadsUrl,
+    }),
+  });
+}
+
+/** Seguimiento 1:1 del Marketing Center. Devuelve si Resend aceptó el envío. */
+export async function sendMarketingFollowUpEmail(params: {
+  to: string;
+  businessName: string;
+  subject: string;
+  body: string;
+}): Promise<boolean> {
+  const businessName = sanitizeUserText(params.businessName, 120);
+  const subject = sanitizeUserText(params.subject, 180);
+  const body = sanitizeUserText(params.body, 4000);
+  return send({
+    to: params.to,
+    subject,
+    logTag: "seguimiento marketing",
+    react: createElement(FollowUpEmail, {
+      businessName,
+      body,
+      preview: subject.slice(0, 90),
     }),
   });
 }

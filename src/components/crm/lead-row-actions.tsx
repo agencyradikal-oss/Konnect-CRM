@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,9 @@ export function LeadRowActions({
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setScheduleOpen(true)}>
             Agendar cita…
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/app/marketing?leadId=${leadId}`}>Seguimiento…</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

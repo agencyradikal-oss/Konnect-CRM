@@ -15,6 +15,7 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 | Calendario | `/app/citas` (citas + tareas con fecha; vistas mes/semana/día) |
 | Ruta del día | `/app/ruta` (Premium) |
 | Tareas | `/app/tareas` |
+| Marketing | `/app/marketing` (visibilidad + seguimiento 1:1) |
 | Analytics | `/app/analytics` |
 | Mi Perfil Público | `/app/perfil` (editor CRM del listing) |
 | Directorio | `/directorio` (directorio público) |
@@ -28,6 +29,12 @@ Fuente única: [`src/components/crm/sidebar-nav.tsx`](../src/components/crm/side
 - Contactos: sheet del contacto → **Agendar medida / visita** ([`contacts-manager.tsx`](../src/components/crm/contacts-manager.tsx))
 - Dialog compartido: [`schedule-appointment-dialog.tsx`](../src/components/crm/schedule-appointment-dialog.tsx)
 - Vista agenda: [`agenda-calendar.tsx`](../src/components/crm/agenda-calendar.tsx) (mes / semana / día; citas + tareas)
+
+### Marketing Center
+
+- Ruta: `/app/marketing` — score de perfil, leads por fuente, tips, seguimiento WhatsApp/SMS/email.
+- Leads: menú ⋮ → **Seguimiento…** (`?leadId=`)
+- Contactos: sheet → **Seguimiento** (`?contactId=`)
 
 ### API partners
 

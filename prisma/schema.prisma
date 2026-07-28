@@ -99,6 +99,7 @@ model Business {
   apiKeys              BusinessApiKey[]
   estimates            Estimate[]
   invoices             Invoice[]
+  outreachLogs         OutreachLog[]
   createdAt            DateTime       @default(now())
 
   @@index([categoryId])
@@ -513,4 +514,21 @@ model Appointment {
   @@index([contactId])
   @@index([dealId])
   @@index([leadId])
+}
+
+/// Seguimiento 1:1 del Marketing Center (email / WhatsApp / SMS).
+model OutreachLog {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  channel     String // email | whatsapp | sms
+  templateKey String
+  contactId   String?
+  leadId      String?
+  dealId      String?
+  toValue     String?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([businessId, channel, createdAt])
 }

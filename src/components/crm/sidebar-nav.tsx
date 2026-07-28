@@ -16,6 +16,7 @@ import {
   Calendar,
   Route,
   FileText,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ const items = [
   { href: "/app/citas", label: "Calendario", icon: Calendar },
   { href: "/app/ruta", label: "Ruta del día", icon: Route },
   { href: "/app/tareas", label: "Tareas", icon: CheckSquare },
+  { href: "/app/marketing", label: "Marketing", icon: Megaphone },
   { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/app/perfil", label: "Mi Perfil Público", icon: Store },
   { href: "/directorio", label: "Directorio", icon: BookOpen },

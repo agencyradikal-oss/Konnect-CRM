@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import { toast } from "sonner";
-import { CalendarPlus, ChevronRight, Plus, Search, Upload } from "lucide-react";
+import { CalendarPlus, ChevronRight, Megaphone, Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -382,6 +382,12 @@ export function ContactsManager({
               >
                 <CalendarPlus className="size-4" />
                 Agendar cita
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/app/marketing?contactId=${selected.id}`}>
+                  <Megaphone className="size-4" />
+                  Seguimiento
+                </Link>
               </Button>
               <Button
                 type="button"

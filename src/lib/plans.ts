@@ -1,5 +1,7 @@
 import type { Plan } from "@prisma/client";
 
+export type FollowUpTemplateSet = "basic" | "standard" | "full";
+
 export type PlanLimits = {
   leadsPerMonth: number | null; // null = ilimitado
   galleryPhotos: number;
@@ -18,6 +20,12 @@ export type PlanLimits = {
   publicBooking: boolean;
   /** Presupuestos y facturas nativos */
   estimates: boolean;
+  /** Hub Marketing Center */
+  marketingCenter: boolean;
+  /** Cupo mensual de emails de seguimiento 1:1 */
+  followUpEmailsPerMonth: number;
+  /** Set de plantillas de seguimiento */
+  followUpTemplateSet: FollowUpTemplateSet;
 };
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
@@ -34,6 +42,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     googleBusinessProfile: false,
     publicBooking: false,
     estimates: false,
+    marketingCenter: true,
+    followUpEmailsPerMonth: 10,
+    followUpTemplateSet: "basic",
   },
   PRO: {
     leadsPerMonth: null,
@@ -48,6 +59,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     googleBusinessProfile: false,
     publicBooking: false,
     estimates: true,
+    marketingCenter: true,
+    followUpEmailsPerMonth: 50,
+    followUpTemplateSet: "standard",
   },
   PREMIUM: {
     leadsPerMonth: null,
@@ -62,6 +76,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     googleBusinessProfile: true,
     publicBooking: true,
     estimates: true,
+    marketingCenter: true,
+    followUpEmailsPerMonth: 200,
+    followUpTemplateSet: "full",
   },
 };
 
@@ -96,6 +113,7 @@ export const PLAN_CATALOG = [
       "1 foto de galería",
       "Leads por email",
       "CRM: 20 leads/mes",
+      "Marketing Center (10 emails/mes)",
       "1 usuario",
     ],
   },
@@ -112,6 +130,7 @@ export const PLAN_CATALOG = [
       "CRM ilimitado",
       "Importar CSV",
       "Presupuestos y facturas",
+      "Marketing Center (50 emails/mes)",
       "Hasta 3 usuarios",
       "Google Calendar (citas)",
     ],
@@ -126,6 +145,7 @@ export const PLAN_CATALOG = [
       "Todo lo de Pro",
       "Badge Destacado (prioridad en búsqueda)",
       "Analytics del perfil",
+      "Marketing Center (200 emails/mes)",
       "Hasta 10 usuarios",
       "Ruta del día + Business Profile + booking",
     ],
