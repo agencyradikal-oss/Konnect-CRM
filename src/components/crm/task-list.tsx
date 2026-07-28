@@ -9,11 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toggleTask, createTask } from "@/actions/crm";
 import { endOfDay, startOfDay } from "@/lib/date-range";
+import { isTaskDone, type TaskCardData } from "@/lib/tasks";
+import type { TaskStatus } from "@prisma/client";
 
 type TaskItem = {
   id: string;
   title: string;
-  done: boolean;
+  status: TaskStatus;
   dueDate: string | null;
 };
 
@@ -41,8 +43,8 @@ function groupTasks(tasks: TaskItem[]) {
     later: [],
   };
 
-  const open = tasks.filter((t) => !t.done);
-  const done = tasks.filter((t) => t.done);
+  const open = tasks.filter((t) => !isTaskDone(t.status));
+  const done = tasks.filter((t) => isTaskDone(t.status));
 
   for (const task of open) {
     if (!task.dueDate) {
@@ -59,7 +61,12 @@ function groupTasks(tasks: TaskItem[]) {
   return { groups, done };
 }
 
-export function TaskList({ tasks }: { tasks: TaskItem[] }) {
+/** Lista agrupada por vencimiento (compat). Preferir TasksBoard en /app/tareas. */
+export function TaskList({
+  tasks,
+}: {
+  tasks: Array<Pick<TaskCardData, "id" | "title" | "status" | "dueDate">>;
+}) {
   const [pending, startTransition] = useTransition();
   const { groups, done } = useMemo(() => groupTasks(tasks), [tasks]);
 
@@ -173,6 +180,7 @@ function TaskRow({
   pending: boolean;
   onToggle: () => void;
 }) {
+  const done = isTaskDone(task.status);
   return (
     <li>
       <button
@@ -181,7 +189,7 @@ function TaskRow({
         onClick={onToggle}
         className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50"
       >
-        {task.done ? (
+        {done ? (
           <CheckCircle2 className="size-5 shrink-0 text-primary" />
         ) : (
           <Circle className="size-5 shrink-0 text-muted-foreground" />
@@ -189,7 +197,7 @@ function TaskRow({
         <span
           className={cn(
             "flex-1",
-            task.done && "text-muted-foreground line-through",
+            done && "text-muted-foreground line-through",
           )}
         >
           {task.title}

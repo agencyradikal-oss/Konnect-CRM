@@ -30,6 +30,7 @@ model User {
   createdAt    DateTime  @default(now())
   googleConnections GoogleConnection[]
   appointmentsCreated Appointment[] @relation("AppointmentCreator")
+  assignedTasks Task[] @relation("TaskAssignee")
 
   @@index([businessId])
   @@index([role])
@@ -386,18 +387,27 @@ enum DealStage {
   PERDIDO
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
 model Task {
-  id         String    @id @default(cuid())
+  id         String     @id @default(cuid())
   businessId String
-  business   Business  @relation(fields: [businessId], references: [id])
+  business   Business   @relation(fields: [businessId], references: [id])
   dealId     String?
-  deal       Deal?     @relation(fields: [dealId], references: [id])
+  deal       Deal?      @relation(fields: [dealId], references: [id])
+  assigneeId String?
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   title      String
   dueDate    DateTime?
-  done       Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  status     TaskStatus @default(TODO)
+  createdAt  DateTime   @default(now())
 
-  @@index([businessId, done])
+  @@index([businessId, status])
+  @@index([businessId, assigneeId])
   @@index([dealId])
 }
 

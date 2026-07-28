@@ -163,7 +163,7 @@ export default async function CitasPage({
           .map((t) => ({
             id: t.id,
             title: t.title,
-            done: t.done,
+            done: t.status === "DONE",
             dueDate: t.dueDate!.toISOString(),
           }))}
       />

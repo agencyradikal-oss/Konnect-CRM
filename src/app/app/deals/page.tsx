@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { getBusinessPlanLimits } from "@/lib/plans";
 import { daysBetween, type DealCardData } from "@/lib/deals";
+import { isTaskDone, type BusinessMember } from "@/lib/tasks";
 import { DealsBoard } from "@/components/crm/deals-board";
 
 export default async function DealsPage({
@@ -13,24 +14,42 @@ export default async function DealsPage({
   const canUseEstimates = getBusinessPlanLimits(business).estimates;
   const params = await searchParams;
 
-  const deals = await prisma.deal.findMany({
-    where: { businessId },
-    include: {
-      contact: { select: { id: true, name: true } },
-      activities: {
-        orderBy: { createdAt: "desc" },
-        take: 30,
-        select: { id: true, type: true, content: true, createdAt: true },
+  const [deals, members] = await Promise.all([
+    prisma.deal.findMany({
+      where: { businessId },
+      include: {
+        contact: { select: { id: true, name: true } },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 30,
+          select: { id: true, type: true, content: true, createdAt: true },
+        },
+        tasks: {
+          orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+          take: 20,
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            dueDate: true,
+            assigneeId: true,
+            assignee: { select: { id: true, name: true, email: true } },
+          },
+        },
       },
-      tasks: {
-        orderBy: [{ done: "asc" }, { createdAt: "desc" }],
-        take: 20,
-        select: { id: true, title: true, done: true, dueDate: true },
+      orderBy: { updatedAt: "desc" },
+      take: 200,
+    }),
+    prisma.user.findMany({
+      where: {
+        businessId,
+        disabled: false,
+        role: { in: ["BUSINESS_OWNER", "BUSINESS_STAFF"] },
       },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 200,
-  });
+      select: { id: true, name: true, email: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+    }),
+  ]);
 
   const payload: DealCardData[] = deals.map((d) => ({
     id: d.id,
@@ -52,8 +71,11 @@ export default async function DealsPage({
     tasks: d.tasks.map((t) => ({
       id: t.id,
       title: t.title,
-      done: t.done,
+      status: t.status,
+      done: isTaskDone(t.status),
       dueDate: t.dueDate?.toISOString() ?? null,
+      assigneeId: t.assigneeId,
+      assignee: t.assignee,
     })),
   }));
 
@@ -61,12 +83,15 @@ export default async function DealsPage({
     .filter((d) => d.stage !== "GANADO" && d.stage !== "PERDIDO")
     .reduce((sum, d) => sum + (d.value ?? 0), 0);
 
+  const memberList: BusinessMember[] = members;
+
   return (
     <DealsBoard
       deals={payload}
       pipeline={pipeline}
       initialDealId={params.deal ?? null}
       canUseEstimates={canUseEstimates}
+      members={memberList}
     />
   );
 }

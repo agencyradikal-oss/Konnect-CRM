@@ -1,4 +1,4 @@
-import type { DealStage } from "@prisma/client";
+import type { DealStage, TaskStatus } from "@prisma/client";
 
 export const DEAL_STAGES: { id: DealStage; label: string }[] = [
   { id: "NUEVO", label: "Nuevo" },
@@ -29,8 +29,11 @@ export type DealCardData = {
   tasks: {
     id: string;
     title: string;
+    status: TaskStatus;
     done: boolean;
     dueDate: string | null;
+    assigneeId: string | null;
+    assignee: { id: string; name: string | null; email: string } | null;
   }[];
 };
 

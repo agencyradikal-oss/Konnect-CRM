@@ -2,10 +2,11 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { LeadStatus, DealStage, LeadSource } from "@prisma/client";
+import { LeadStatus, DealStage, LeadSource, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { sanitizeUserText } from "@/lib/sanitize";
+import type { BusinessMember } from "@/lib/tasks";
 
 function revalidateCrm(...extra: string[]) {
   revalidatePath("/app", "layout");
@@ -237,18 +238,44 @@ export async function toggleTask(input: unknown) {
   });
   if (!task) return { ok: false as const, error: "Tarea no encontrada." };
 
+  const nextStatus: TaskStatus =
+    task.status === "DONE" ? "TODO" : "DONE";
+
   await prisma.task.update({
     where: { id: task.id },
-    data: { done: !task.done },
+    data: { status: nextStatus },
   });
   revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
   return { ok: true as const };
+}
+
+async function resolveAssigneeId(
+  businessId: string,
+  assigneeId: string | null | undefined,
+): Promise<{ ok: true; assigneeId: string | null } | { ok: false; error: string }> {
+  if (!assigneeId) return { ok: true, assigneeId: null };
+
+  const member = await prisma.user.findFirst({
+    where: {
+      id: assigneeId,
+      businessId,
+      disabled: false,
+      role: { in: ["BUSINESS_OWNER", "BUSINESS_STAFF"] },
+    },
+    select: { id: true },
+  });
+  if (!member) {
+    return { ok: false, error: "Asignado no válido para este negocio." };
+  }
+  return { ok: true, assigneeId: member.id };
 }
 
 const taskSchema = z.object({
   title: z.string().min(1, "Título requerido").max(200),
   dueDate: z.string().optional().or(z.literal("")),
   dealId: z.string().optional().or(z.literal("")),
+  status: z.nativeEnum(TaskStatus).optional(),
+  assigneeId: z.string().optional().or(z.literal("")),
 });
 
 export async function createTask(input: unknown) {
@@ -262,17 +289,107 @@ export async function createTask(input: unknown) {
     if (!deal) return { ok: false as const, error: "Deal no encontrado." };
   }
 
+  const assignee = await resolveAssigneeId(
+    businessId,
+    data.assigneeId || null,
+  );
+  if (!assignee.ok) return { ok: false as const, error: assignee.error };
+
   await prisma.task.create({
     data: {
       businessId,
       title: data.title,
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       dealId: data.dealId || null,
+      status: data.status ?? "TODO",
+      assigneeId: assignee.assigneeId,
     },
   });
 
   revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
   return { ok: true as const };
+}
+
+const taskStatusSchema = z.object({
+  taskId: z.string().min(1),
+  status: z.nativeEnum(TaskStatus),
+});
+
+export async function updateTaskStatus(input: unknown) {
+  const { businessId } = await getCurrentBusiness();
+  const data = taskStatusSchema.parse(input);
+
+  const task = await prisma.task.findFirst({
+    where: { id: data.taskId, businessId },
+  });
+  if (!task) return { ok: false as const, error: "Tarea no encontrada." };
+  if (task.status === data.status) return { ok: true as const };
+
+  await prisma.task.update({
+    where: { id: task.id },
+    data: { status: data.status },
+  });
+
+  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
+  return { ok: true as const };
+}
+
+const taskUpdateSchema = z.object({
+  taskId: z.string().min(1),
+  title: z.string().min(1).max(200).optional(),
+  dueDate: z.string().optional().nullable(),
+  status: z.nativeEnum(TaskStatus).optional(),
+  assigneeId: z.string().optional().nullable(),
+});
+
+export async function updateTask(input: unknown) {
+  const { businessId } = await getCurrentBusiness();
+  const data = taskUpdateSchema.parse(input);
+
+  const task = await prisma.task.findFirst({
+    where: { id: data.taskId, businessId },
+  });
+  if (!task) return { ok: false as const, error: "Tarea no encontrada." };
+
+  let assigneeId: string | null | undefined = undefined;
+  if (data.assigneeId !== undefined) {
+    const assignee = await resolveAssigneeId(
+      businessId,
+      data.assigneeId || null,
+    );
+    if (!assignee.ok) return { ok: false as const, error: assignee.error };
+    assigneeId = assignee.assigneeId;
+  }
+
+  await prisma.task.update({
+    where: { id: task.id },
+    data: {
+      ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.dueDate !== undefined
+        ? { dueDate: data.dueDate ? new Date(data.dueDate) : null }
+        : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(assigneeId !== undefined ? { assigneeId } : {}),
+    },
+  });
+
+  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
+  return { ok: true as const };
+}
+
+/** Miembros activos del negocio (OWNER + STAFF) para asignar tareas. */
+export async function listBusinessMembers(): Promise<BusinessMember[]> {
+  const { businessId } = await getCurrentBusiness();
+  const users = await prisma.user.findMany({
+    where: {
+      businessId,
+      disabled: false,
+      role: { in: ["BUSINESS_OWNER", "BUSINESS_STAFF"] },
+    },
+    select: { id: true, name: true, email: true },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+  });
+  return users;
 }
 
 const contactSchema = z.object({

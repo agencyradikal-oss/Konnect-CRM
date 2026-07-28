@@ -27,22 +27,33 @@ import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment
 import { DealEstimatesPanel } from "@/components/crm/deal-estimates-panel";
 import type { DealCardData } from "@/lib/deals";
 import { formatMoney } from "@/lib/date-range";
+import { memberLabel, type BusinessMember } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function DealDetailSheet({
   deal,
   open,
   onOpenChange,
   canUseEstimates = false,
+  members = [],
 }: {
   deal: DealCardData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canUseEstimates?: boolean;
+  members?: BusinessMember[];
 }) {
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
+  const [taskAssigneeId, setTaskAssigneeId] = useState("");
 
   if (!deal) return null;
 
@@ -80,9 +91,11 @@ export function DealDetailSheet({
       const res = await createTask({
         title: taskTitle.trim(),
         dealId: deal!.id,
+        assigneeId: taskAssigneeId || "",
       });
       if (res.ok) {
         setTaskTitle("");
+        setTaskAssigneeId("");
         toast.success("Tarea creada.");
       } else toast.error(res.error);
     });
@@ -221,20 +234,42 @@ export function DealDetailSheet({
 
           <div className="space-y-2">
             <Label>Tareas del deal</Label>
-            <div className="flex gap-2">
-              <Input
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Nueva tarea..."
-              />
-              <Button
-                type="button"
-                size="icon"
-                disabled={pending}
-                onClick={addTask}
-              >
-                <Plus className="size-4" />
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Input
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="Nueva tarea..."
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  disabled={pending}
+                  onClick={addTask}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+              {members.length > 0 && (
+                <Select
+                  value={taskAssigneeId || "__none__"}
+                  onValueChange={(v) =>
+                    setTaskAssigneeId(v === "__none__" ? "" : v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Asignar a" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin asignar</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {memberLabel(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <ul className="divide-y rounded-lg border">
               {deal.tasks.length === 0 ? (
@@ -256,12 +291,22 @@ export function DealDetailSheet({
                     >
                       <span
                         className={cn(
-                          "size-4 rounded border",
+                          "size-4 shrink-0 rounded border",
                           t.done && "bg-primary border-primary",
                         )}
                       />
-                      <span className={cn(t.done && "line-through opacity-60")}>
-                        {t.title}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            "block",
+                            t.done && "line-through opacity-60",
+                          )}
+                        >
+                          {t.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {memberLabel(t.assignee)}
+                        </span>
                       </span>
                     </button>
                   </li>

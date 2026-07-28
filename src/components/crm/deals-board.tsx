@@ -39,6 +39,7 @@ import { DEAL_STAGES, type DealCardData } from "@/lib/deals";
 import { formatMoney } from "@/lib/date-range";
 import { cn } from "@/lib/utils";
 import type { DealStage } from "@prisma/client";
+import type { BusinessMember } from "@/lib/tasks";
 
 function DealCard({
   deal,
@@ -133,11 +134,13 @@ export function DealsBoard({
   pipeline,
   initialDealId = null,
   canUseEstimates = false,
+  members = [],
 }: {
   deals: DealCardData[];
   pipeline: number;
   initialDealId?: string | null;
   canUseEstimates?: boolean;
+  members?: BusinessMember[];
 }) {
   const router = useRouter();
   const [view, setView] = useState<"kanban" | "table">("kanban");
@@ -347,6 +350,7 @@ export function DealsBoard({
         open={sheetOpen}
         onOpenChange={onSheetOpenChange}
         canUseEstimates={canUseEstimates}
+        members={members}
       />
     </div>
   );

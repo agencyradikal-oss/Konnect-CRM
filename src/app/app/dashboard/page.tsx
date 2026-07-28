@@ -138,7 +138,7 @@ export default async function DashboardPage({
     prisma.task.findMany({
       where: {
         businessId,
-        done: false,
+        status: { not: "DONE" },
         dueDate: { gte: todayStart, lte: todayEnd },
       },
       orderBy: { dueDate: "asc" },
