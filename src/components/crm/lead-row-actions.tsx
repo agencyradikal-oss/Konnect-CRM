@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { updateLeadStatus, convertLead } from "@/actions/crm";
+import { updateLeadStatus, convertLead, deleteLead } from "@/actions/crm";
 import { ScheduleAppointmentDialog } from "@/components/crm/schedule-appointment-dialog";
 import type { LeadStatus } from "@prisma/client";
 
@@ -42,6 +42,7 @@ export function LeadRowActions({
 }) {
   const [pending, startTransition] = useTransition();
   const [convertOpen, setConvertOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
   function runStatus(next: LeadStatus) {
@@ -58,6 +59,18 @@ export function LeadRowActions({
       if (res.ok) {
         toast.success("Lead convertido en contacto + deal.");
         setConvertOpen(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  function runDelete() {
+    startTransition(async () => {
+      const res = await deleteLead({ leadId });
+      if (res.ok) {
+        toast.success("Lead eliminado.");
+        setDeleteOpen(false);
       } else {
         toast.error(res.error);
       }
@@ -105,6 +118,17 @@ export function LeadRowActions({
           <DropdownMenuItem asChild>
             <Link href={`/app/marketing?leadId=${leadId}`}>Seguimiento…</Link>
           </DropdownMenuItem>
+          {status !== "CONVERTED" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                Eliminar…
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -137,6 +161,36 @@ export function LeadRowActions({
             </Button>
             <Button type="button" onClick={runConvert} disabled={pending}>
               {pending ? "Convirtiendo…" : "Convertir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eliminar lead</DialogTitle>
+            <DialogDescription>
+              ¿Eliminar el lead de &ldquo;{leadName}&rdquo;? Esta acción no se
+              puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={pending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={runDelete}
+              disabled={pending}
+            >
+              {pending ? "Eliminando…" : "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>

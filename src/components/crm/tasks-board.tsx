@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
-import { LayoutGrid, List, Plus } from "lucide-react";
+import { LayoutGrid, List, Plus, Trash2 } from "lucide-react";
 import type { TaskStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   createTask,
+  deleteTask,
   toggleTask,
   updateTask,
   updateTaskStatus,
@@ -59,9 +68,11 @@ type FilterKey = "all" | "mine" | "unassigned";
 function TaskCard({
   task,
   dragging,
+  onRequestDelete,
 }: {
   task: TaskCardData;
   dragging?: boolean;
+  onRequestDelete: (task: TaskCardData) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, data: { status: task.status } });
@@ -75,29 +86,48 @@ function TaskCard({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className={cn(
-        "cursor-grab rounded-lg border bg-card p-3 shadow-sm active:cursor-grabbing",
+        "rounded-lg border bg-card p-3 shadow-sm",
         (isDragging || dragging) && "opacity-40",
         isTaskDone(task.status) && "opacity-75",
       )}
     >
-      <p
-        className={cn(
-          "text-sm font-semibold leading-snug",
-          isTaskDone(task.status) && "line-through text-muted-foreground",
-        )}
-      >
-        {task.title}
-      </p>
-      <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span className="truncate">{memberLabel(task.assignee)}</span>
-        {task.dueDate ? (
-          <span className="shrink-0">
-            {new Date(task.dueDate).toLocaleDateString("es-US")}
-          </span>
-        ) : null}
+      <div className="flex items-start gap-1">
+        <div
+          className="min-w-0 flex-1 cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <p
+            className={cn(
+              "text-sm font-semibold leading-snug",
+              isTaskDone(task.status) && "line-through text-muted-foreground",
+            )}
+          >
+            {task.title}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="truncate">{memberLabel(task.assignee)}</span>
+            {task.dueDate ? (
+              <span className="shrink-0">
+                {new Date(task.dueDate).toLocaleDateString("es-US")}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-8 shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestDelete(task);
+          }}
+        >
+          <Trash2 className="size-3.5 text-destructive" />
+          <span className="sr-only">Eliminar</span>
+        </Button>
       </div>
     </div>
   );
@@ -107,10 +137,12 @@ function Column({
   status,
   label,
   tasks,
+  onRequestDelete,
 }: {
   status: TaskStatus;
   label: string;
   tasks: TaskCardData[];
+  onRequestDelete: (task: TaskCardData) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -134,7 +166,11 @@ function Column({
       >
         <div className="flex max-h-[65vh] flex-col gap-2 overflow-y-auto p-2">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              onRequestDelete={onRequestDelete}
+            />
           ))}
         </div>
       </SortableContext>
@@ -158,11 +194,29 @@ export function TasksBoard({
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [assigneeId, setAssigneeId] = useState<string>("");
+  const [deleteTarget, setDeleteTarget] = useState<TaskCardData | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    const taskId = deleteTarget.id;
+    const prev = tasks;
+    setTasks((list) => list.filter((t) => t.id !== taskId));
+    setDeleteTarget(null);
+    startTransition(async () => {
+      const res = await deleteTask({ taskId });
+      if (!res.ok) {
+        setTasks(prev);
+        toast.error(res.error ?? "No se pudo eliminar.");
+      } else {
+        toast.success("Tarea eliminada.");
+      }
+    });
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -377,6 +431,7 @@ export function TasksBoard({
                 status={s.id}
                 label={s.label}
                 tasks={byStatus[s.id]}
+                onRequestDelete={setDeleteTarget}
               />
             ))}
           </div>
@@ -403,7 +458,7 @@ export function TasksBoard({
                     <TableHead>Estado</TableHead>
                     <TableHead className="hidden sm:table-cell">Asignado</TableHead>
                     <TableHead className="hidden md:table-cell">Vence</TableHead>
-                    <TableHead className="w-24" />
+                    <TableHead className="w-32" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -461,20 +516,35 @@ export function TasksBoard({
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          disabled={pending}
-                          onClick={() =>
-                            startTransition(async () => {
-                              const res = await toggleTask({ taskId: task.id });
-                              if (!res.ok) toast.error(res.error);
-                            })
-                          }
-                        >
-                          {isTaskDone(task.status) ? "Reabrir" : "Hecha"}
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={pending}
+                            onClick={() =>
+                              startTransition(async () => {
+                                const res = await toggleTask({
+                                  taskId: task.id,
+                                });
+                                if (!res.ok) toast.error(res.error);
+                              })
+                            }
+                          >
+                            {isTaskDone(task.status) ? "Reabrir" : "Hecha"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="size-8"
+                            disabled={pending}
+                            onClick={() => setDeleteTarget(task)}
+                          >
+                            <Trash2 className="size-3.5 text-destructive" />
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -490,6 +560,41 @@ export function TasksBoard({
           Sin tareas. Agrega la primera arriba.
         </p>
       )}
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eliminar tarea</DialogTitle>
+            <DialogDescription>
+              ¿Eliminar &ldquo;{deleteTarget?.title}&rdquo;? Esta acción no se
+              puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={pending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={pending}
+            >
+              {pending ? "Eliminando…" : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

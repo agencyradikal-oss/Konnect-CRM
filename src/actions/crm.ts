@@ -392,6 +392,41 @@ export async function listBusinessMembers(): Promise<BusinessMember[]> {
   return users;
 }
 
+export async function deleteTask(input: unknown) {
+  const { businessId } = await getCurrentBusiness();
+  const { taskId } = z.object({ taskId: z.string().min(1) }).parse(input);
+
+  const { count } = await prisma.task.deleteMany({
+    where: { id: taskId, businessId },
+  });
+  if (count === 0) return { ok: false as const, error: "Tarea no encontrada." };
+
+  revalidateCrm("/app/tareas", "/app/deals", "/app/dashboard", "/app/citas");
+  return { ok: true as const };
+}
+
+/** Hard delete. No permite borrar leads CONVERTED (quedan como historial). */
+export async function deleteLead(input: unknown) {
+  const { businessId } = await getCurrentBusiness();
+  const { leadId } = z.object({ leadId: z.string().min(1) }).parse(input);
+
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, businessId },
+    select: { id: true, status: true },
+  });
+  if (!lead) return { ok: false as const, error: "Lead no encontrado." };
+  if (lead.status === "CONVERTED") {
+    return {
+      ok: false as const,
+      error: "No se puede borrar un lead convertido. El contacto y deal se conservan.",
+    };
+  }
+
+  await prisma.lead.delete({ where: { id: lead.id } });
+  revalidateCrm("/app/leads", "/app/dashboard", "/app/marketing");
+  return { ok: true as const };
+}
+
 const contactSchema = z.object({
   contactId: z.string().min(1).optional(),
   name: z.string().min(1).max(120),
