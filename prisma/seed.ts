@@ -19,13 +19,13 @@ const categories = [
 ];
 
 const hours = {
-  mon: "9:00-18:00",
-  tue: "9:00-18:00",
-  wed: "9:00-18:00",
-  thu: "9:00-18:00",
-  fri: "9:00-18:00",
-  sat: "10:00-14:00",
-  sun: null,
+  mon: { open: "09:00", close: "18:00", closed: false },
+  tue: { open: "09:00", close: "18:00", closed: false },
+  wed: { open: "09:00", close: "18:00", closed: false },
+  thu: { open: "09:00", close: "18:00", closed: false },
+  fri: { open: "09:00", close: "18:00", closed: false },
+  sat: { open: "10:00", close: "14:00", closed: false },
+  sun: { open: "10:00", close: "14:00", closed: true },
 };
 
 type SeedBusiness = {

@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateBusinessProfile } from "@/actions/business";
-import { HoursEditor, defaultHours, type WeekHours } from "@/components/business/hours-editor";
+import { HoursEditor, defaultHours, normalizeWeekHours, type WeekHours } from "@/components/business/hours-editor";
 import { ImageUpload } from "@/components/business/image-upload";
 import { GalleryManager } from "@/components/crm/gallery-manager";
 import {
@@ -70,9 +70,13 @@ export function ProfileForm({
   const [city, setCity] = useState(initial.city);
   const [zip, setZip] = useState(initial.zip);
   const [socials, setSocials] = useState<BusinessSocials>(initial.socials ?? {});
-  const [hours, setHours] = useState<WeekHours>(initial.hours ?? defaultHours);
+  const [hours, setHours] = useState<WeekHours>(() =>
+    normalizeWeekHours(initial.hours ?? defaultHours),
+  );
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  const phoneWasEmpty = !initial.phone.trim();
 
   function setSocial(key: SocialNetworkKey, value: string) {
     setSocials((prev) => ({ ...prev, [key]: value }));
@@ -87,35 +91,38 @@ export function ProfileForm({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.set("name", name);
-    formData.set("categoryId", categoryId);
-    formData.set("description", description);
-    formData.set("languages", JSON.stringify(languages));
-    formData.set("phone", phone);
-    formData.set("whatsapp", whatsapp);
-    formData.set("email", email);
-    formData.set("website", website);
-    formData.set("address", address);
-    formData.set("city", city);
-    formData.set("zip", zip);
-    formData.set(
-      "socials",
-      JSON.stringify({
+    const langs = languages.filter((l) => l === "es" || l === "en");
+    const payload = {
+      name: name ?? "",
+      categoryId: categoryId ?? "",
+      description: description ?? "",
+      languages: langs.length ? langs : (["es"] as string[]),
+      phone: phone ?? "",
+      whatsapp: whatsapp ?? "",
+      email: email ?? "",
+      website: website ?? "",
+      address: address ?? "",
+      city: city ?? "",
+      zip: zip ?? "",
+      socials: {
         facebook: socials.facebook ?? "",
         instagram: socials.instagram ?? "",
         tiktok: socials.tiktok ?? "",
         linkedin: socials.linkedin ?? "",
-      }),
-    );
-    formData.set("hours", JSON.stringify(hours));
-    if (logoUrl) formData.set("logoUrl", logoUrl);
-    if (coverUrl) formData.set("coverUrl", coverUrl);
+      },
+      hours: normalizeWeekHours(hours),
+      logoUrl: logoUrl ?? null,
+      coverUrl: coverUrl ?? null,
+    };
 
     startTransition(async () => {
-      const res = await updateBusinessProfile(formData);
-      if (res.ok) toast.success("Perfil actualizado.");
-      else toast.error(res.error ?? "No se pudo guardar.");
+      try {
+        const res = await updateBusinessProfile(payload);
+        if (res.ok) toast.success("Perfil actualizado.");
+        else toast.error(res.error ?? "No se pudo guardar.");
+      } catch {
+        toast.error("No se pudo guardar. Intenta de nuevo.");
+      }
     });
   }
 
@@ -183,7 +190,13 @@ export function ProfileForm({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
+              placeholder="4045551234"
             />
+            {phoneWasEmpty && !phone.trim() && (
+              <p className="text-xs text-muted-foreground">
+                Obligatorio para click-to-call y leads desde el directorio.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="whatsapp">WhatsApp</Label>
@@ -206,7 +219,7 @@ export function ProfileForm({
             <Label htmlFor="website">Sitio web</Label>
             <Input
               id="website"
-              placeholder="https://..."
+              placeholder="tuweb.com o https://..."
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />

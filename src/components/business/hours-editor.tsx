@@ -3,19 +3,14 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  defaultHours,
+  type DayHours,
+  type WeekHours,
+} from "@/lib/hours";
 
-export type DayHours = { open: string; close: string; closed: boolean };
-export type WeekHours = Record<string, DayHours>;
-
-export const defaultHours: WeekHours = {
-  mon: { open: "09:00", close: "18:00", closed: false },
-  tue: { open: "09:00", close: "18:00", closed: false },
-  wed: { open: "09:00", close: "18:00", closed: false },
-  thu: { open: "09:00", close: "18:00", closed: false },
-  fri: { open: "09:00", close: "18:00", closed: false },
-  sat: { open: "10:00", close: "14:00", closed: false },
-  sun: { open: "10:00", close: "14:00", closed: true },
-};
+export type { DayHours, WeekHours };
+export { defaultHours, normalizeWeekHours } from "@/lib/hours";
 
 const dayLabels: Record<string, string> = {
   mon: "Lunes",
@@ -35,7 +30,8 @@ export function HoursEditor({
   onChange: (hours: WeekHours) => void;
 }) {
   function update(day: string, patch: Partial<DayHours>) {
-    onChange({ ...value, [day]: { ...value[day], ...patch } });
+    const base = value[day] ?? defaultHours[day];
+    onChange({ ...value, [day]: { ...base, ...patch } });
   }
 
   return (

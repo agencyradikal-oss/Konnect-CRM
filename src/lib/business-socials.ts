@@ -54,6 +54,13 @@ export function normalizeSocialUrl(raw: string): string | null {
   }
 }
 
+/** Sitio web del perfil: vacío → `""`; sin protocolo → prepend https. Inválida → null. */
+export function normalizeWebsiteUrl(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return "";
+  return normalizeSocialUrl(t);
+}
+
 export function parseBusinessSocials(raw: unknown): BusinessSocials {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const obj = raw as Record<string, unknown>;

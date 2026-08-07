@@ -4,7 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { getPlanLimits } from "@/lib/plans";
 import { parseBusinessSocials } from "@/lib/business-socials";
 import { ProfileForm } from "@/components/crm/profile-form";
-import { defaultHours, type WeekHours } from "@/components/business/hours-editor";
+import { normalizeWeekHours, type WeekHours } from "@/lib/hours";
 
 export default async function PerfilPage() {
   const { businessId, business: tenant } = await getCurrentBusiness();
@@ -19,10 +19,7 @@ export default async function PerfilPage() {
     }),
   ]);
 
-  const hours =
-    business.hours && typeof business.hours === "object"
-      ? (business.hours as WeekHours)
-      : defaultHours;
+  const hours: WeekHours = normalizeWeekHours(business.hours);
 
   return (
     <div className="max-w-2xl space-y-6">

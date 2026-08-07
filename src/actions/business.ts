@@ -9,9 +9,11 @@ import { syncClerkUserMetadata } from "@/lib/clerk-sync";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   normalizeSocialUrl,
+  normalizeWebsiteUrl,
   socialsForDb,
 } from "@/lib/business-socials";
 import { normalizeClaimEmail } from "@/lib/business-claim";
+import { normalizeWeekHours } from "@/lib/hours";
 
 /** Solo acepta URLs del store Blob de Vercel (subidas vía /api/blob/upload). */
 function parseBlobUrl(raw: FormDataEntryValue | null): string | null {
@@ -44,12 +46,17 @@ async function uniqueSlug(name: string) {
 }
 
 const daySchema = z.object({
-  open: z.string(),
-  close: z.string(),
-  closed: z.boolean(),
+  open: z.string().default("09:00"),
+  close: z.string().default("18:00"),
+  closed: z.boolean().default(false),
 });
 
 const hoursSchema = z.record(z.string(), daySchema);
+
+function formStr(fd: FormData, key: string): string {
+  const v = fd.get(key);
+  return typeof v === "string" ? v : "";
+}
 
 const wizardSchema = z.object({
   // Paso 1
@@ -222,8 +229,81 @@ const profileSchema = wizardSchema.extend({
   website: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
+const zStr = z.preprocess((v) => (v == null ? "" : v), z.string());
+const zStrOpt = z.preprocess((v) => (v == null ? "" : v), z.string());
+
+const profileUpdateInputSchema = z.object({
+  name: zStr,
+  categoryId: zStr,
+  description: zStrOpt,
+  languages: z.array(z.string()).default(["es"]),
+  phone: zStr,
+  whatsapp: zStrOpt,
+  email: zStrOpt,
+  website: zStrOpt,
+  address: zStrOpt,
+  city: zStr,
+  zip: zStrOpt,
+  hours: z.unknown(),
+  socials: z
+    .object({
+      facebook: z.string().optional(),
+      instagram: z.string().optional(),
+      tiktok: z.string().optional(),
+      linkedin: z.string().optional(),
+    })
+    .optional()
+    .default({}),
+  logoUrl: z.string().optional().nullable(),
+  coverUrl: z.string().optional().nullable(),
+});
+
+function coerceProfilePayload(input: unknown): Record<string, unknown> {
+  if (typeof FormData !== "undefined" && input instanceof FormData) {
+    let hours: unknown = {};
+    try {
+      hours = JSON.parse(String(input.get("hours") ?? "{}"));
+    } catch {
+      hours = {};
+    }
+    let socials: unknown = {};
+    try {
+      socials = JSON.parse(String(input.get("socials") ?? "{}"));
+    } catch {
+      socials = {};
+    }
+    let languages: unknown = ["es"];
+    try {
+      languages = JSON.parse(String(input.get("languages") ?? '["es"]'));
+    } catch {
+      languages = ["es"];
+    }
+    return {
+      name: formStr(input, "name"),
+      categoryId: formStr(input, "categoryId"),
+      description: formStr(input, "description"),
+      languages,
+      phone: formStr(input, "phone"),
+      whatsapp: formStr(input, "whatsapp"),
+      email: formStr(input, "email"),
+      website: formStr(input, "website"),
+      address: formStr(input, "address"),
+      city: formStr(input, "city"),
+      zip: formStr(input, "zip"),
+      hours,
+      socials,
+      logoUrl: formStr(input, "logoUrl") || null,
+      coverUrl: formStr(input, "coverUrl") || null,
+    };
+  }
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    return { ...(input as Record<string, unknown>) };
+  }
+  return {};
+}
+
 /** Edición completa del perfil público desde /app/perfil. */
-export async function updateBusinessProfile(formData: FormData) {
+export async function updateBusinessProfile(input: unknown) {
   const { businessId } = await requireBusinessSession();
 
   const current = await prisma.business.findUniqueOrThrow({
@@ -231,78 +311,108 @@ export async function updateBusinessProfile(formData: FormData) {
     select: { slug: true, address: true, city: true, zip: true, lat: true },
   });
 
+  const coerced = coerceProfilePayload(input);
+
+  const rawParsed = profileUpdateInputSchema.safeParse(coerced);
+  if (!rawParsed.success) {
+    const first = rawParsed.error.issues[0];
+    const path = first?.path?.length ? `${first.path.join(".")}: ` : "";
+    return {
+      ok: false as const,
+      error: `${path}${first?.message ?? "Datos inválidos."}`,
+    };
+  }
+
+  const raw = rawParsed.data;
+  const hoursNormalized = normalizeWeekHours(raw.hours);
+
+  const websiteNormalized = normalizeWebsiteUrl(raw.website);
+  if (websiteNormalized === null) {
+    return { ok: false as const, error: "website: URL inválida." };
+  }
+
   let data;
   try {
     data = profileSchema.parse({
-      name: formData.get("name"),
-      categoryId: formData.get("categoryId"),
-      description: formData.get("description") ?? "",
-      languages: JSON.parse(String(formData.get("languages") ?? "[]")),
-      phone: formData.get("phone"),
-      whatsapp: formData.get("whatsapp") ?? "",
-      email: formData.get("email") ?? "",
-      website: formData.get("website") ?? "",
-      address: formData.get("address") ?? "",
-      city: formData.get("city"),
-      zip: formData.get("zip") ?? "",
-      hours: JSON.parse(String(formData.get("hours") ?? "{}")),
+      name: raw.name,
+      categoryId: raw.categoryId,
+      description: raw.description,
+      languages: raw.languages,
+      phone: raw.phone,
+      whatsapp: raw.whatsapp,
+      email: raw.email,
+      website: websiteNormalized,
+      address: raw.address,
+      city: raw.city,
+      zip: raw.zip,
+      hours: hoursNormalized,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { ok: false as const, error: error.issues[0]?.message ?? "Datos inválidos." };
+      const first = error.issues[0];
+      const path = first?.path?.length ? `${first.path.join(".")}: ` : "";
+      return {
+        ok: false as const,
+        error: `${path}${first?.message ?? "Datos inválidos."}`,
+      };
     }
     return { ok: false as const, error: "Datos inválidos." };
   }
 
-  let socialsRaw: unknown = {};
-  try {
-    socialsRaw = JSON.parse(String(formData.get("socials") ?? "{}"));
-  } catch {
-    socialsRaw = {};
-  }
-  if (typeof socialsRaw === "object" && socialsRaw && !Array.isArray(socialsRaw)) {
-    for (const [k, v] of Object.entries(socialsRaw as Record<string, unknown>)) {
-      if (typeof v === "string" && v.trim() && !normalizeSocialUrl(v)) {
-        return { ok: false as const, error: `URL de ${k} inválida.` };
-      }
+  const socialsRaw = raw.socials ?? {};
+  for (const [k, v] of Object.entries(socialsRaw)) {
+    if (typeof v === "string" && v.trim() && !normalizeSocialUrl(v)) {
+      return { ok: false as const, error: `URL de ${k} inválida.` };
     }
   }
   const socials = socialsForDb(socialsRaw);
 
-  // Re-geocodificar solo si cambió la ubicación (o nunca se geocodificó)
   const locationChanged =
     data.address !== (current.address ?? "") ||
     data.city !== (current.city ?? "") ||
     data.zip !== (current.zip ?? "") ||
     current.lat === null;
-  const coords = locationChanged
-    ? await geocodeAddress({ address: data.address, city: data.city, zip: data.zip })
-    : null;
 
-  const logoUrl = parseBlobUrl(formData.get("logoUrl"));
-  const coverUrl = parseBlobUrl(formData.get("coverUrl"));
+  try {
+    const coords = locationChanged
+      ? await geocodeAddress({
+          address: data.address,
+          city: data.city,
+          zip: data.zip,
+        })
+      : null;
 
-  await prisma.business.update({
-    where: { id: businessId },
-    data: {
-      name: data.name,
-      categoryId: data.categoryId,
-      description: data.description || null,
-      languages: data.languages,
-      phone: data.phone,
-      whatsapp: data.whatsapp || null,
-      email: data.email || null,
-      website: data.website || null,
-      address: data.address || null,
-      city: data.city,
-      zip: data.zip || null,
-      hours: data.hours,
-      socials: socials ?? Prisma.DbNull,
-      ...(coords && { lat: coords.lat, lng: coords.lng }),
-      ...(logoUrl && { logoUrl }),
-      ...(coverUrl && { coverUrl }),
-    },
-  });
+    const logoUrl = parseBlobUrl(raw.logoUrl ?? null);
+    const coverUrl = parseBlobUrl(raw.coverUrl ?? null);
+
+    await prisma.business.update({
+      where: { id: businessId },
+      data: {
+        name: data.name,
+        categoryId: data.categoryId,
+        description: data.description || null,
+        languages: data.languages,
+        phone: data.phone,
+        whatsapp: data.whatsapp || null,
+        email: data.email || null,
+        website: data.website || null,
+        address: data.address || null,
+        city: data.city,
+        zip: data.zip || null,
+        hours: data.hours,
+        socials: socials ?? Prisma.DbNull,
+        ...(coords && { lat: coords.lat, lng: coords.lng }),
+        ...(logoUrl && { logoUrl }),
+        ...(coverUrl && { coverUrl }),
+      },
+    });
+  } catch (error) {
+    console.error("[updateBusinessProfile]", error);
+    return {
+      ok: false as const,
+      error: "No se pudo guardar el perfil. Intenta de nuevo.",
+    };
+  }
 
   revalidatePath("/app/perfil");
   revalidatePath(`/negocio/${current.slug}`);
