@@ -71,6 +71,7 @@ export default async function AdminEditarNegocioPage({
             categories={categories}
             initial={{
               name: business.name,
+              slug: business.slug,
               categoryId: business.categoryId,
               description: business.description ?? "",
               languages: business.languages,
@@ -80,6 +81,8 @@ export default async function AdminEditarNegocioPage({
               website: business.website ?? "",
               address: business.address ?? "",
               city: business.city ?? "",
+              state: business.state ?? "GA",
+              country: business.country ?? "US",
               zip: business.zip ?? "",
               socials: parseBusinessSocials(business.socials),
               logoUrl: business.logoUrl,

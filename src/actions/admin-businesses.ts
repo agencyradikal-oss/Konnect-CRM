@@ -61,6 +61,8 @@ const adminBusinessFieldsSchema = z.object({
   website: z.string().url("URL inválida").optional().or(z.literal("")),
   address: z.string().max(200).optional().or(z.literal("")),
   city: z.string().min(1, "Ciudad requerida").max(80),
+  state: z.string().min(1, "Estado requerido").max(40),
+  country: z.string().min(1, "País requerido").max(80),
   zip: z.string().max(10).optional().or(z.literal("")),
   hours: hoursSchema,
 });
@@ -79,7 +81,10 @@ const adminBusinessInputSchema = z.object({
   website: zStrOpt,
   address: zStrOpt,
   city: zStr,
+  state: zStr,
+  country: zStr,
   zip: zStrOpt,
+  slug: zStrOpt,
   hours: z.unknown(),
   socials: z
     .object({
@@ -131,12 +136,15 @@ function parseAdminBusinessInput(input: unknown) {
       website: websiteNormalized,
       address: raw.address,
       city: raw.city,
+      state: raw.state.trim() || "GA",
+      country: raw.country.trim() || "US",
       zip: raw.zip,
       hours: normalizeWeekHours(raw.hours),
     });
     return {
       ok: true as const,
       data,
+      slugRaw: raw.slug,
       socials: socialsForDb(socialsRaw),
       logoUrl: parseBlobUrl(raw.logoUrl ?? null),
       coverUrl: parseBlobUrl(raw.coverUrl ?? null),
@@ -155,6 +163,7 @@ function revalidateBusinessPaths(slug?: string) {
   revalidatePath("/admin/reclamos");
   revalidatePath("/admin/usuarios");
   revalidatePath("/directorio");
+  revalidatePath("/sitemap.xml");
   if (slug) revalidatePath(`/negocio/${slug}`);
 }
 
@@ -177,7 +186,9 @@ export async function createBusinessAsAdmin(input: unknown) {
     const coords = await geocodeAddress({
       address: parsed.data.address,
       city: parsed.data.city,
+      state: parsed.data.state,
       zip: parsed.data.zip,
+      country: parsed.data.country,
     });
     const slug = await uniqueSlug(parsed.data.name);
 
@@ -195,7 +206,8 @@ export async function createBusinessAsAdmin(input: unknown) {
         address: parsed.data.address || null,
         city: parsed.data.city,
         zip: parsed.data.zip || null,
-        state: "GA",
+        state: parsed.data.state,
+        country: parsed.data.country,
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,
         hours: parsed.data.hours,
@@ -237,6 +249,8 @@ export async function updateBusinessAsAdmin(input: unknown) {
       slug: true,
       address: true,
       city: true,
+      state: true,
+      country: true,
       zip: true,
       lat: true,
     },
@@ -253,9 +267,28 @@ export async function updateBusinessAsAdmin(input: unknown) {
     return { ok: false as const, error: "Categoría no encontrada." };
   }
 
+  const nextSlug = slugify(parsed.slugRaw || current.slug);
+  if (nextSlug.length < 2 || nextSlug.length > 80) {
+    return {
+      ok: false as const,
+      error: "slug: Usa letras, números y guiones (mínimo 2).",
+    };
+  }
+  if (nextSlug !== current.slug) {
+    const taken = await prisma.business.findFirst({
+      where: { slug: nextSlug, id: { not: current.id } },
+      select: { id: true },
+    });
+    if (taken) {
+      return { ok: false as const, error: "Ese slug ya está en uso." };
+    }
+  }
+
   const locationChanged =
     parsed.data.address !== (current.address ?? "") ||
     parsed.data.city !== (current.city ?? "") ||
+    parsed.data.state !== (current.state ?? "") ||
+    parsed.data.country !== (current.country ?? "") ||
     parsed.data.zip !== (current.zip ?? "") ||
     current.lat === null;
 
@@ -264,7 +297,9 @@ export async function updateBusinessAsAdmin(input: unknown) {
       ? await geocodeAddress({
           address: parsed.data.address,
           city: parsed.data.city,
+          state: parsed.data.state,
           zip: parsed.data.zip,
+          country: parsed.data.country,
         })
       : null;
 
@@ -272,6 +307,7 @@ export async function updateBusinessAsAdmin(input: unknown) {
       where: { id: current.id },
       data: {
         name: parsed.data.name,
+        slug: nextSlug,
         categoryId: parsed.data.categoryId,
         description: parsed.data.description || null,
         languages: parsed.data.languages,
@@ -281,6 +317,8 @@ export async function updateBusinessAsAdmin(input: unknown) {
         website: parsed.data.website || null,
         address: parsed.data.address || null,
         city: parsed.data.city,
+        state: parsed.data.state,
+        country: parsed.data.country,
         zip: parsed.data.zip || null,
         hours: parsed.data.hours,
         socials: parsed.socials ?? Prisma.DbNull,
@@ -290,9 +328,12 @@ export async function updateBusinessAsAdmin(input: unknown) {
       },
     });
 
-    revalidateBusinessPaths(current.slug);
+    if (nextSlug !== current.slug) {
+      revalidateBusinessPaths(current.slug);
+    }
+    revalidateBusinessPaths(nextSlug);
     revalidatePath(`/admin/negocios/${current.id}`);
-    return { ok: true as const, slug: current.slug };
+    return { ok: true as const, slug: nextSlug };
   } catch (error) {
     console.error("[updateBusinessAsAdmin]", error);
     return {

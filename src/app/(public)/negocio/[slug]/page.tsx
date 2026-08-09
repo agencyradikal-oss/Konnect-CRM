@@ -99,7 +99,7 @@ export default async function NegocioPage({ params }: Props) {
       addressLocality: business.city ?? undefined,
       addressRegion: business.state ?? "GA",
       postalCode: business.zip ?? undefined,
-      addressCountry: "US",
+      addressCountry: business.country ?? "US",
     },
     ...(business.lat &&
       business.lng && {
@@ -214,7 +214,16 @@ export default async function NegocioPage({ params }: Props) {
                 <p className="mt-2 flex items-start gap-1.5 text-muted-foreground">
                   <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
                   <span className="break-words">
-                    {[business.address, business.city, business.state]
+                    {[
+                      business.address,
+                      business.city,
+                      business.state,
+                      business.country &&
+                      business.country.toUpperCase() !== "US" &&
+                      business.country.toUpperCase() !== "USA"
+                        ? business.country
+                        : null,
+                    ]
                       .filter(Boolean)
                       .join(", ")}
                   </span>

@@ -60,7 +60,17 @@ export function BusinessCard({
             {business.city && (
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="size-4 text-primary" />
-                {business.city}, {business.state}
+                {[
+                  business.city,
+                  business.state,
+                  business.country &&
+                  business.country.toUpperCase() !== "US" &&
+                  business.country.toUpperCase() !== "USA"
+                    ? business.country
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
               </span>
             )}
             {business.phone && (

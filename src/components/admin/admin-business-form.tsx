@@ -36,6 +36,7 @@ type CategoryOption = { id: string; nameEs: string };
 
 export type AdminBusinessFormInitial = {
   name: string;
+  slug: string;
   categoryId: string;
   description: string;
   languages: string[];
@@ -45,6 +46,8 @@ export type AdminBusinessFormInitial = {
   website: string;
   address: string;
   city: string;
+  state: string;
+  country: string;
   zip: string;
   socials: BusinessSocials;
   logoUrl: string | null;
@@ -66,6 +69,7 @@ export function AdminBusinessForm({
   const isEdit = Boolean(businessId);
 
   const [name, setName] = useState(initial?.name ?? "");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [languages, setLanguages] = useState<string[]>(
@@ -77,6 +81,8 @@ export function AdminBusinessForm({
   const [website, setWebsite] = useState(initial?.website ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
+  const [state, setState] = useState(initial?.state ?? "GA");
+  const [country, setCountry] = useState(initial?.country ?? "US");
   const [zip, setZip] = useState(initial?.zip ?? "");
   const [socials, setSocials] = useState<BusinessSocials>(initial?.socials ?? {});
   const [hours, setHours] = useState<WeekHours>(() =>
@@ -99,7 +105,7 @@ export function AdminBusinessForm({
     e.preventDefault();
     const langs = languages.filter((l) => l === "es" || l === "en");
     const payload = {
-      ...(isEdit ? { id: businessId } : {}),
+      ...(isEdit ? { id: businessId, slug: slug ?? "" } : {}),
       name: name ?? "",
       categoryId: categoryId ?? "",
       description: description ?? "",
@@ -110,6 +116,8 @@ export function AdminBusinessForm({
       website: website ?? "",
       address: address ?? "",
       city: city ?? "",
+      state: state ?? "GA",
+      country: country ?? "US",
       zip: zip ?? "",
       socials: {
         facebook: socials.facebook ?? "",
@@ -153,6 +161,21 @@ export function AdminBusinessForm({
             required
           />
         </div>
+        {isEdit && (
+          <div className="space-y-2">
+            <Label htmlFor="slug">Slug (URL pública) *</Label>
+            <Input
+              id="slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              required
+              placeholder="dejavu-atlanta"
+            />
+            <p className="text-xs text-muted-foreground">
+              konnect.kmd.agency/negocio/{slug || "…"}
+            </p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Categoría *</Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
@@ -283,6 +306,26 @@ export function AdminBusinessForm({
               onChange={(e) => setCity(e.target.value)}
               required
               placeholder="Atlanta"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="state">Estado *</Label>
+            <Input
+              id="state"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              required
+              placeholder="GA"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="country">País *</Label>
+            <Input
+              id="country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              required
+              placeholder="US"
             />
           </div>
           <div className="space-y-2">

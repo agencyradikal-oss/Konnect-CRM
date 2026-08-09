@@ -5,8 +5,15 @@ export function formatAddressLine(parts: {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  country?: string | null;
 }) {
-  return [parts.address, parts.city, parts.state ?? "GA", parts.zip, "USA"]
+  return [
+    parts.address,
+    parts.city,
+    parts.state ?? "GA",
+    parts.zip,
+    parts.country ?? "US",
+  ]
     .filter(Boolean)
     .join(", ");
 }

@@ -8,8 +8,15 @@ export async function geocodeAddress(parts: {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  country?: string | null;
 }): Promise<{ lat: number; lng: number } | null> {
-  const query = [parts.address, parts.city, parts.state ?? "GA", parts.zip, "USA"]
+  const query = [
+    parts.address,
+    parts.city,
+    parts.state ?? "GA",
+    parts.zip,
+    parts.country ?? "US",
+  ]
     .filter(Boolean)
     .join(", ");
   if (!query) return null;

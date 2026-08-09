@@ -59,6 +59,7 @@ model Business {
   address              String?
   city                 String?
   state                String?        @default("GA")
+  country              String?        @default("US")
   zip                  String?
   lat                  Float?
   lng                  Float?
