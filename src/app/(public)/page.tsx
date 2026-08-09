@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { Search, BadgeCheck, ArrowRight } from "lucide-react";
 import type { Business, Category } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { HeroRotatingTitle } from "@/components/public/hero-rotating-title";
+import { CategoryIcon } from "@/components/directory/category-icon";
+import { categoryLabel } from "@/lib/category-label";
 
 export const dynamic = "force-dynamic";
 
 type FeaturedBusiness = Business & { category: Category };
+type CategoryWithCount = Category & { _count: { businesses: number } };
 
 async function loadHomeCities(): Promise<string[]> {
   try {
@@ -36,7 +39,9 @@ async function loadHomeCities(): Promise<string[]> {
 
 export default async function HomePage() {
   const t = await getTranslations("home");
-  let categories: Category[] = [];
+  const tc = await getTranslations("category");
+  const locale = await getLocale();
+  let categories: CategoryWithCount[] = [];
   let featured: FeaturedBusiness[] = [];
   let cities: string[] = ["Atlanta"];
   let dbError = false;
@@ -46,6 +51,11 @@ export default async function HomePage() {
       prisma.category.findMany({
         where: { parentId: null },
         orderBy: { nameEs: "asc" },
+        include: {
+          _count: {
+            select: { businesses: { where: { status: "ACTIVE" } } },
+          },
+        },
       }),
       prisma.business.findMany({
         where: { status: "ACTIVE", featured: true },
@@ -71,9 +81,9 @@ export default async function HomePage() {
 
           <form
             action="/directorio"
-            className="mx-auto mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
+            className="mx-auto mt-8 flex max-w-2xl flex-col gap-2 sm:flex-row"
           >
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 name="q"
@@ -82,6 +92,12 @@ export default async function HomePage() {
                 autoComplete="off"
               />
             </div>
+            <Input
+              name="ciudad"
+              placeholder={t("cityPlaceholder")}
+              className="h-12 sm:w-40"
+              autoComplete="address-level2"
+            />
             <Button type="submit" size="lg" className="h-12">
               {t("search")}
             </Button>
@@ -100,16 +116,29 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="text-2xl font-semibold">{t("categories")}</h2>
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {categories.map((cat) => (
-            <Link key={cat.id} href={`/categoria/${cat.slug}`} prefetch={false}>
-              <Card className="transition-colors hover:border-primary">
-                <CardContent className="p-4">
-                  <p className="font-medium">{cat.nameEs}</p>
-                  <p className="text-xs text-muted-foreground">{cat.nameEn}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          {categories.map((cat) => {
+            const count = cat._count.businesses;
+            return (
+              <Link key={cat.id} href={`/categoria/${cat.slug}`} prefetch={false}>
+                <Card className="h-full transition-colors hover:border-primary">
+                  <CardContent className="flex items-start gap-3 p-4">
+                    <CategoryIcon
+                      name={cat.icon}
+                      className="mt-0.5 size-5 shrink-0 text-primary"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium leading-tight">
+                        {categoryLabel(cat, locale)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {tc(count === 1 ? "count" : "count_plural", { count })}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -135,7 +164,7 @@ export default async function HomePage() {
                       )}
                     </div>
                     <Badge variant="secondary" className="mt-2">
-                      {biz.category.nameEs}
+                      {categoryLabel(biz.category, locale)}
                     </Badge>
                     <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
                       {biz.description}

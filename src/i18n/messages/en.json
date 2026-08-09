@@ -31,7 +31,8 @@
   "home": {
     "title": "Find growing businesses in <highlight>{city}</highlight>",
     "subtitle": "Remodeling, restaurants, health, legal and more — service in your language.",
-    "searchPlaceholder": "What are you looking for? E.g.: countertops, tacos, lawyer...",
+    "searchPlaceholder": "What are you looking for? E.g.: grocery, tacos, lawyer...",
+    "cityPlaceholder": "City (e.g. Norcross)",
     "search": "Search",
     "categories": "Categories",
     "featured": "Featured businesses",
@@ -48,10 +49,19 @@
     "found_plural": "{count} businesses found",
     "searchPlaceholder": "Search business or service...",
     "cityPlaceholder": "City (e.g. Norcross)",
+    "categoryPlaceholder": "Category",
+    "categoryAll": "All categories",
     "noResults": "No businesses match those filters.",
     "home": "Home",
     "back": "Back",
     "breadcrumb": "Breadcrumb"
+  },
+  "category": {
+    "count": "{count} business in this category",
+    "count_plural": "{count} businesses in this category",
+    "empty": "There are no businesses in this category yet.",
+    "emptyCta": "List yours for free",
+    "filterCity": "Filter by city"
   },
   "pricing": {
     "title": "Simple plans for your business",

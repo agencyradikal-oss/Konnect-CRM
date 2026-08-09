@@ -16,6 +16,18 @@ const categories = [
   { slug: "limpieza", nameEs: "Limpieza", nameEn: "Cleaning", icon: "brush" },
   { slug: "marketing", nameEs: "Marketing", nameEn: "Marketing", icon: "megaphone" },
   { slug: "contabilidad-taxes", nameEs: "Contabilidad y Taxes", nameEn: "Accounting & Taxes", icon: "calculator" },
+  { slug: "supermercados", nameEs: "Supermercados", nameEn: "Grocery", icon: "shopping-cart" },
+  { slug: "tiendas-retail", nameEs: "Tiendas y Retail", nameEn: "Shops & Retail", icon: "store" },
+  { slug: "cafes", nameEs: "Cafés", nameEn: "Coffee", icon: "coffee" },
+  { slug: "panaderias", nameEs: "Panaderías", nameEn: "Bakeries", icon: "croissant" },
+  { slug: "fitness-deportes", nameEs: "Fitness y Deportes", nameEn: "Fitness & Sports", icon: "dumbbell" },
+  { slug: "educacion", nameEs: "Educación", nameEn: "Education", icon: "graduation-cap" },
+  { slug: "servicios-hogar", nameEs: "Servicios del hogar", nameEn: "Home Services", icon: "wrench" },
+  { slug: "jardineria-paisajismo", nameEs: "Jardinería y Paisajismo", nameEn: "Landscaping", icon: "trees" },
+  { slug: "mudanzas", nameEs: "Mudanzas", nameEn: "Moving", icon: "truck" },
+  { slug: "mascotas", nameEs: "Mascotas", nameEn: "Pets", icon: "paw-print" },
+  { slug: "eventos", nameEs: "Eventos y Entretenimiento", nameEn: "Events", icon: "party-popper" },
+  { slug: "transporte", nameEs: "Transporte", nameEn: "Transportation", icon: "bus" },
 ];
 
 const hours = {

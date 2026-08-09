@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Search } from "lucide-react";
 import type { Business, Category } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/prisma";
 import { BusinessCard } from "@/components/directory/business-card";
 import { DirectoryNav } from "@/components/directory/directory-nav";
+import { categoryLabel } from "@/lib/category-label";
 
 export const dynamic = "force-dynamic";
 
@@ -22,32 +23,44 @@ type ListedBusiness = Business & { category: Category };
 export default async function DirectorioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; ciudad?: string }>;
+  searchParams: Promise<{ q?: string; ciudad?: string; categoria?: string }>;
 }) {
   const t = await getTranslations("directory");
   const th = await getTranslations("home");
-  const { q, ciudad } = await searchParams;
+  const locale = await getLocale();
+  const { q, ciudad, categoria } = await searchParams;
 
   let businesses: ListedBusiness[] = [];
+  let categories: { slug: string; nameEs: string; nameEn: string }[] = [];
   let dbError = false;
 
   try {
-    businesses = await prisma.business.findMany({
-      where: {
-        status: "ACTIVE",
-        ...(q && {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-            { category: { nameEs: { contains: q, mode: "insensitive" } } },
-          ],
-        }),
-        ...(ciudad && { city: { contains: ciudad, mode: "insensitive" } }),
-      },
-      include: { category: true },
-      orderBy: [{ featured: "desc" }, { verified: "desc" }, { createdAt: "desc" }],
-      take: 50,
-    });
+    [businesses, categories] = await Promise.all([
+      prisma.business.findMany({
+        where: {
+          status: "ACTIVE",
+          ...(categoria && { category: { slug: categoria } }),
+          ...(q && {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { description: { contains: q, mode: "insensitive" } },
+              { category: { nameEs: { contains: q, mode: "insensitive" } } },
+              { category: { nameEn: { contains: q, mode: "insensitive" } } },
+              { category: { slug: { contains: q, mode: "insensitive" } } },
+            ],
+          }),
+          ...(ciudad && { city: { contains: ciudad, mode: "insensitive" } }),
+        },
+        include: { category: true },
+        orderBy: [{ featured: "desc" }, { verified: "desc" }, { createdAt: "desc" }],
+        take: 100,
+      }),
+      prisma.category.findMany({
+        where: { parentId: null },
+        orderBy: { nameEs: "asc" },
+        select: { slug: true, nameEs: true, nameEn: true },
+      }),
+    ]);
   } catch (error) {
     dbError = true;
     console.error("[directorio] Database unavailable:", error);
@@ -85,6 +98,19 @@ export default async function DirectorioPage({
             className="w-full pl-9"
           />
         </div>
+        <select
+          name="categoria"
+          defaultValue={categoria ?? ""}
+          aria-label={t("categoryPlaceholder")}
+          className="flex h-9 w-full rounded-md border bg-transparent px-3 text-sm sm:w-56"
+        >
+          <option value="">{t("categoryAll")}</option>
+          {categories.map((cat) => (
+            <option key={cat.slug} value={cat.slug}>
+              {categoryLabel(cat, locale)}
+            </option>
+          ))}
+        </select>
         <Input
           name="ciudad"
           defaultValue={ciudad}
@@ -101,7 +127,7 @@ export default async function DirectorioPage({
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {businesses.map((biz) => (
-            <BusinessCard key={biz.id} business={biz} />
+            <BusinessCard key={biz.id} business={biz} locale={locale} />
           ))}
         </div>
       )}

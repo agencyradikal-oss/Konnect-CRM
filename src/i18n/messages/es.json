@@ -31,7 +31,8 @@
   "home": {
     "title": "Encuentra negocios en crecimiento en <highlight>{city}</highlight>",
     "subtitle": "Remodelación, restaurantes, salud, legal y más — con atención en tu idioma.",
-    "searchPlaceholder": "¿Qué buscas? Ej: countertops, tacos, abogado...",
+    "searchPlaceholder": "¿Qué buscas? Ej: supermercado, tacos, abogado...",
+    "cityPlaceholder": "Ciudad (ej. Norcross)",
     "search": "Buscar",
     "categories": "Categorías",
     "featured": "Negocios destacados",
@@ -48,10 +49,19 @@
     "found_plural": "{count} negocios encontrados",
     "searchPlaceholder": "Buscar negocio o servicio...",
     "cityPlaceholder": "Ciudad (ej. Norcross)",
+    "categoryPlaceholder": "Categoría",
+    "categoryAll": "Todas las categorías",
     "noResults": "No encontramos negocios con esos filtros.",
     "home": "Inicio",
     "back": "Atrás",
     "breadcrumb": "Ruta de navegación"
+  },
+  "category": {
+    "count": "{count} negocio en esta categoría",
+    "count_plural": "{count} negocios en esta categoría",
+    "empty": "Aún no hay negocios en esta categoría.",
+    "emptyCta": "Registra el tuyo gratis",
+    "filterCity": "Filtrar por ciudad"
   },
   "pricing": {
     "title": "Planes simples para tu negocio",

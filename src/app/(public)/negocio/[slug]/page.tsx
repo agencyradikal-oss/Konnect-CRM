@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Globe, MapPin, Star } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { categoryLabel } from "@/lib/category-label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
@@ -49,13 +50,21 @@ async function getBusiness(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const locale = await getLocale();
   const business = await getBusiness(slug);
   if (!business) return {};
+  const cat = categoryLabel(business.category, locale);
+  const city = business.city ?? "Atlanta";
   return {
-    title: `${business.name} — ${business.category.nameEs} en ${business.city ?? "Atlanta"}, GA`,
+    title:
+      locale === "en"
+        ? `${business.name} — ${cat} in ${city}, GA`
+        : `${business.name} — ${cat} en ${city}, GA`,
     description:
       business.description?.slice(0, 155) ??
-      `${business.name}: ${business.category.nameEs} en ${business.city}, Georgia.`,
+      (locale === "en"
+        ? `${business.name}: ${cat} in ${city}, Georgia.`
+        : `${business.name}: ${cat} en ${city}, Georgia.`),
     alternates: { canonical: `/negocio/${business.slug}` },
     openGraph: {
       title: business.name,
@@ -71,8 +80,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NegocioPage({ params }: Props) {
   const { slug } = await params;
   const t = await getTranslations("directory");
+  const locale = await getLocale();
   const business = await getBusiness(slug);
   if (!business || business.status !== "ACTIVE") notFound();
+  const catLabel = categoryLabel(business.category, locale);
 
   const avgRating =
     business.reviews.length > 0
@@ -125,7 +136,7 @@ export default async function NegocioPage({ params }: Props) {
   const crumbsLd = breadcrumbJsonLd(baseUrl, [
     { name: t("home"), path: "/" },
     { name: t("title"), path: "/directorio" },
-    { name: business.category.nameEs, path: categoryHref },
+    { name: catLabel, path: categoryHref },
     { name: business.name, path: `/negocio/${business.slug}` },
   ]);
 
@@ -164,7 +175,7 @@ export default async function NegocioPage({ params }: Props) {
           items={[
             { label: t("home"), href: "/" },
             { label: t("title"), href: "/directorio" },
-            { label: business.category.nameEs, href: categoryHref },
+            { label: catLabel, href: categoryHref },
             { label: business.name },
           ]}
         />
@@ -196,7 +207,7 @@ export default async function NegocioPage({ params }: Props) {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Link href={categoryHref}>
-                  <Badge variant="secondary">{business.category.nameEs}</Badge>
+                  <Badge variant="secondary">{catLabel}</Badge>
                 </Link>
                 {business.featured && (
                   <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">

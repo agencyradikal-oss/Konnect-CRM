@@ -4,11 +4,14 @@ import { BadgeCheck, MapPin, Phone, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Business, Category } from "@prisma/client";
+import { categoryLabel } from "@/lib/category-label";
 
 export function BusinessCard({
   business,
+  locale = "es",
 }: {
   business: Business & { category: Category };
+  locale?: string;
 }) {
   return (
     <Link href={`/negocio/${business.slug}`} className="block h-full">
@@ -50,7 +53,9 @@ export function BusinessCard({
             )}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Badge variant="secondary">{business.category.nameEs}</Badge>
+            <Badge variant="secondary">
+              {categoryLabel(business.category, locale)}
+            </Badge>
             {business.featured && <Badge>Destacado</Badge>}
           </div>
           <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
