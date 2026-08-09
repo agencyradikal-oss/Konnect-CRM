@@ -70,9 +70,14 @@ export default async function AdminPage() {
             {totalUsers} usuarios
           </p>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin/usuarios">Gestionar usuarios</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/negocios">Negocios</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/usuarios">Gestionar usuarios</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

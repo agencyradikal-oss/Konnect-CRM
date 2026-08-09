@@ -12,6 +12,24 @@ import { sanitizeUserText } from "@/lib/sanitize";
 function revalidateAdminUsers() {
   revalidatePath("/admin");
   revalidatePath("/admin/usuarios");
+  revalidatePath("/admin/negocios");
+  revalidatePath("/admin/reclamos");
+}
+
+/** Si el usuario es dueño, marca la ficha como reclamada y limpia el token. */
+async function markBusinessClaimedIfOwner(opts: {
+  businessId: string | null;
+  role: Role;
+}) {
+  if (!opts.businessId || opts.role !== "BUSINESS_OWNER") return;
+  await prisma.business.updateMany({
+    where: { id: opts.businessId, claimedAt: null },
+    data: {
+      claimedAt: new Date(),
+      claimTokenHash: null,
+      claimTokenExpiresAt: null,
+    },
+  });
 }
 
 const roleSchema = z.nativeEnum(Role);
@@ -58,6 +76,10 @@ export async function updateUserRole(input: unknown) {
     data: { role: data.role },
   });
   await syncClerkForUser(data.userId);
+  await markBusinessClaimedIfOwner({
+    businessId: target.businessId,
+    role: data.role,
+  });
 
   revalidateAdminUsers();
   return { ok: true as const };
@@ -73,6 +95,12 @@ export async function assignUserBusiness(input: unknown) {
     })
     .parse(input);
 
+  const target = await prisma.user.findUnique({
+    where: { id: data.userId },
+    select: { id: true, role: true, email: true },
+  });
+  if (!target) return { ok: false as const, error: "Usuario no encontrado." };
+
   if (data.businessId) {
     const biz = await prisma.business.findUnique({
       where: { id: data.businessId },
@@ -86,23 +114,21 @@ export async function assignUserBusiness(input: unknown) {
     data: { businessId: data.businessId },
   });
   await syncClerkForUser(data.userId);
+  await markBusinessClaimedIfOwner({
+    businessId: data.businessId,
+    role: target.role,
+  });
 
-  if (data.businessId) {
-    const user = await prisma.user.findUnique({
-      where: { id: data.userId },
-      select: { email: true },
-    });
-    if (user?.email) {
-      const { applyCourtesyForUserBusiness } = await import(
-        "@/lib/plan-courtesy"
-      );
-      await applyCourtesyForUserBusiness(prisma, {
-        email: user.email,
-        businessId: data.businessId,
-      }).catch((err) =>
-        console.error("[assignUserBusiness] plan courtesy:", err),
-      );
-    }
+  if (data.businessId && target.email) {
+    const { applyCourtesyForUserBusiness } = await import(
+      "@/lib/plan-courtesy"
+    );
+    await applyCourtesyForUserBusiness(prisma, {
+      email: target.email,
+      businessId: data.businessId,
+    }).catch((err) =>
+      console.error("[assignUserBusiness] plan courtesy:", err),
+    );
   }
 
   revalidateAdminUsers();
@@ -242,6 +268,10 @@ export async function createAdminUser(input: unknown) {
   });
 
   if (businessId) {
+    await markBusinessClaimedIfOwner({
+      businessId,
+      role: data.role,
+    });
     const { applyCourtesyForUserBusiness } = await import(
       "@/lib/plan-courtesy"
     );

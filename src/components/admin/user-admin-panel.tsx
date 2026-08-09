@@ -166,7 +166,7 @@ export function UserAdminPanel({
                 <option value="">— Sin negocio —</option>
                 {businesses.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.name}
+                    {b.name} ({b.slug})
                   </option>
                 ))}
               </select>
@@ -276,7 +276,7 @@ export function UserAdminPanel({
                         <option value="">— Sin negocio —</option>
                         {businesses.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.name}
+                            {b.name} ({b.slug})
                           </option>
                         ))}
                       </select>

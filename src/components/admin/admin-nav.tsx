@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Gift, KeyRound, MessageSquareText, Users } from "lucide-react";
+import { Building2, Gift, KeyRound, MessageSquareText, Store, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Moderación", icon: Building2, exact: true },
+  { href: "/admin/negocios", label: "Negocios", icon: Store },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/admin/socios", label: "Socios", icon: Gift },
   { href: "/admin/reclamos", label: "Reclamos", icon: KeyRound },

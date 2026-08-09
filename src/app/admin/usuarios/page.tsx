@@ -28,7 +28,7 @@ export default async function AdminUsuariosPage() {
     prisma.business.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true, slug: true },
-      take: 500,
+      take: 2000,
     }),
   ]);
 
