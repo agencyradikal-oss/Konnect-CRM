@@ -2,7 +2,12 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { AppointmentStatus, AppointmentType } from "@prisma/client";
+import {
+  AppointmentStatus,
+  AppointmentType,
+  type DealStage,
+  TaskStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireBusinessSession } from "@/lib/auth";
 import { getPlanLimits } from "@/lib/plans";
@@ -22,6 +27,143 @@ function revalidateAppointments() {
   revalidatePath("/app/citas");
   revalidatePath("/app/ruta");
   revalidatePath("/app/dashboard");
+}
+
+export type AppointmentDetail = {
+  id: string;
+  title: string;
+  type: AppointmentType;
+  status: AppointmentStatus;
+  notes: string | null;
+  startsAt: string;
+  endsAt: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  mapsUrl: string | null;
+  googleEventId: string | null;
+  contactId: string | null;
+  dealId: string | null;
+  contact: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    company: string | null;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    notes: string | null;
+  } | null;
+  deal: {
+    id: string;
+    title: string;
+    value: number | null;
+    stage: DealStage;
+    notes: string | null;
+    tasks: { id: string; title: string; dueDate: string | null }[];
+    activities: {
+      id: string;
+      type: string;
+      content: string;
+      createdAt: string;
+    }[];
+  } | null;
+};
+
+export async function getAppointmentDetail(input: unknown) {
+  const { businessId } = await requireBusinessSession();
+  const parsed = z.object({ id: z.string().min(1) }).safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Cita no encontrada." };
+  }
+
+  const row = await prisma.appointment.findFirst({
+    where: { id: parsed.data.id, businessId },
+    include: {
+      contact: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          company: true,
+          address: true,
+          city: true,
+          state: true,
+          zip: true,
+          notes: true,
+        },
+      },
+      deal: {
+        select: {
+          id: true,
+          title: true,
+          value: true,
+          stage: true,
+          notes: true,
+          tasks: {
+            where: { status: { not: TaskStatus.DONE } },
+            orderBy: { dueDate: "asc" },
+            take: 5,
+            select: { id: true, title: true, dueDate: true },
+          },
+          activities: {
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: { id: true, type: true, content: true, createdAt: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!row) {
+    return { ok: false as const, error: "Cita no encontrada." };
+  }
+
+  const appointment: AppointmentDetail = {
+    id: row.id,
+    title: row.title,
+    type: row.type,
+    status: row.status,
+    notes: row.notes,
+    startsAt: row.startsAt.toISOString(),
+    endsAt: row.endsAt.toISOString(),
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    mapsUrl: row.mapsUrl,
+    googleEventId: row.googleEventId,
+    contactId: row.contactId,
+    dealId: row.dealId,
+    contact: row.contact,
+    deal: row.deal
+      ? {
+          id: row.deal.id,
+          title: row.deal.title,
+          value: row.deal.value != null ? Number(row.deal.value) : null,
+          stage: row.deal.stage,
+          notes: row.deal.notes,
+          tasks: row.deal.tasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            dueDate: t.dueDate?.toISOString() ?? null,
+          })),
+          activities: row.deal.activities.map((a) => ({
+            id: a.id,
+            type: a.type,
+            content: a.content,
+            createdAt: a.createdAt.toISOString(),
+          })),
+        }
+      : null,
+  };
+
+  return { ok: true as const, appointment };
 }
 
 const appointmentSchema = z.object({
@@ -183,6 +325,34 @@ export async function updateAppointment(input: unknown) {
     return { ok: false as const, error: "Cita no encontrada." };
   }
 
+  if (data.contactId) {
+    const contact = await prisma.contact.findFirst({
+      where: { id: data.contactId, businessId },
+      select: { id: true },
+    });
+    if (!contact) {
+      return { ok: false as const, error: "Contacto no encontrado." };
+    }
+  }
+  if (data.dealId) {
+    const deal = await prisma.deal.findFirst({
+      where: { id: data.dealId, businessId },
+      select: { id: true },
+    });
+    if (!deal) {
+      return { ok: false as const, error: "Deal no encontrado." };
+    }
+  }
+  if (data.leadId) {
+    const lead = await prisma.lead.findFirst({
+      where: { id: data.leadId, businessId },
+      select: { id: true },
+    });
+    if (!lead) {
+      return { ok: false as const, error: "Lead no encontrado." };
+    }
+  }
+
   const { business, limits } = await assertCalendarPlan(businessId);
 
   const startsAt = data.startsAt ? new Date(data.startsAt) : existing.startsAt;
@@ -230,16 +400,32 @@ export async function updateAppointment(input: unknown) {
       ...(data.city !== undefined && { city: data.city?.trim() || null }),
       ...(data.state !== undefined && { state: data.state?.trim() || null }),
       ...(data.zip !== undefined && { zip: data.zip?.trim() || null }),
+      ...(data.contactId !== undefined && { contactId: data.contactId || null }),
+      ...(data.dealId !== undefined && { dealId: data.dealId || null }),
+      ...(data.leadId !== undefined && { leadId: data.leadId || null }),
       lat,
       lng,
       mapsUrl,
     },
   });
 
+  const shouldSyncGoogle =
+    data.syncCalendar !== false &&
+    Boolean(
+      data.title ||
+        data.startsAt ||
+        data.endsAt ||
+        data.status ||
+        data.address !== undefined ||
+        data.city !== undefined ||
+        data.state !== undefined ||
+        data.zip !== undefined,
+    );
+
   if (
     limits.googleCalendar &&
     updated.googleEventId &&
-    data.syncCalendar !== false
+    shouldSyncGoogle
   ) {
     const token = await getValidGoogleAccessToken({
       businessId,
@@ -292,6 +478,65 @@ export async function cancelAppointment(input: unknown) {
     ...z.object({ id: z.string().min(1) }).parse(input),
     status: "CANCELED",
   });
+}
+
+export async function completeAppointment(input: unknown) {
+  const { businessId } = await requireBusinessSession();
+  const parsed = z
+    .object({
+      id: z.string().min(1),
+      outcome: z.string().max(2000).optional(),
+      followUpTitle: z.string().max(200).optional(),
+    })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Datos inválidos." };
+  }
+  const data = parsed.data;
+
+  const existing = await prisma.appointment.findFirst({
+    where: { id: data.id, businessId },
+    select: { id: true, title: true, dealId: true, status: true },
+  });
+  if (!existing) {
+    return { ok: false as const, error: "Cita no encontrada." };
+  }
+
+  const updated = await updateAppointment({ id: existing.id, status: "DONE" });
+  if (!updated.ok) return updated;
+
+  const outcome = data.outcome?.trim();
+  if (existing.dealId) {
+    await prisma.activity
+      .create({
+        data: {
+          businessId,
+          dealId: existing.dealId,
+          type: "note",
+          content: outcome
+            ? `Visita completada — ${outcome}`
+            : `Visita completada: ${existing.title}`,
+        },
+      })
+      .catch(() => undefined);
+  }
+
+  const followUp = data.followUpTitle?.trim();
+  if (followUp && existing.dealId) {
+    await prisma.task.create({
+      data: {
+        businessId,
+        dealId: existing.dealId,
+        title: followUp,
+        status: TaskStatus.TODO,
+      },
+    });
+  }
+
+  revalidateAppointments();
+  revalidatePath("/app/deals");
+  revalidatePath("/app/tareas");
+  return { ok: true as const };
 }
 
 export async function reorderDayRoute(input: unknown) {

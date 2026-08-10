@@ -162,6 +162,34 @@ const createDealSchema = z.object({
   value: z.union([z.string(), z.number()]).optional().or(z.literal("")),
 });
 
+export async function searchContacts(input: unknown) {
+  const { businessId } = await getCurrentBusiness();
+  const parsed = z
+    .object({ q: z.string().max(120).optional() })
+    .safeParse(input);
+  const term = parsed.success ? (parsed.data.q ?? "").trim() : "";
+
+  const contacts = await prisma.contact.findMany({
+    where: {
+      businessId,
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: "insensitive" } },
+              { phone: { contains: term, mode: "insensitive" } },
+              { email: { contains: term, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, phone: true, email: true },
+    orderBy: { name: "asc" },
+    take: 20,
+  });
+
+  return { ok: true as const, contacts };
+}
+
 export async function createDeal(input: unknown) {
   const { businessId } = await getCurrentBusiness();
   const parsed = createDealSchema.safeParse(input);

@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
-  MapPin,
   CheckSquare,
   CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { cancelAppointment } from "@/actions/appointments";
+import {
+  getAppointmentDetail,
+  type AppointmentDetail,
+} from "@/actions/appointments";
 import { toggleTask } from "@/actions/crm";
 import { endOfDay, startOfDay, startOfWeek } from "@/lib/date-range";
 import {
@@ -23,6 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AppointmentDetailSheet } from "@/components/crm/appointment-detail-sheet";
 
 export type AgendaAppointment = {
   kind: "appointment";
@@ -173,6 +175,10 @@ export function AgendaCalendar({
   );
   const [selected, setSelected] = useState<AgendaItem | null>(null);
   const [daySheet, setDaySheet] = useState<Date | null>(null);
+  const [statusById, setStatusById] = useState<Record<string, string>>({});
+  const detailCache = useRef(new Map<string, AppointmentDetail>());
+  const prefetchTimer = useRef<number | null>(null);
+  const [seed, setSeed] = useState<AppointmentDetail | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -182,8 +188,24 @@ export function AgendaCalendar({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  function prefetchAppointment(id: string) {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    if (detailCache.current.has(id)) return;
+    if (prefetchTimer.current) window.clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = window.setTimeout(() => {
+      void getAppointmentDetail({ id }).then((res) => {
+        if (res.ok) detailCache.current.set(id, res.appointment);
+      });
+    }, 150);
+  }
+
   const items = useMemo<AgendaItem[]>(() => {
     const appts: AgendaItem[] = appointments
+      .map((a) => ({
+        ...a,
+        status: statusById[a.id] ?? a.status,
+      }))
       .filter((a) => a.status !== "CANCELED")
       .map((a) => ({ ...a, kind: "appointment" as const }));
     const tks: AgendaItem[] = tasks.map((t) => ({
@@ -191,7 +213,7 @@ export function AgendaCalendar({
       kind: "task" as const,
     }));
     return [...appts, ...tks].filter((i) => itemMatchesFilter(i, filters));
-  }, [appointments, tasks, filters]);
+  }, [appointments, tasks, filters, statusById]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, AgendaItem[]>();
@@ -250,6 +272,11 @@ export function AgendaCalendar({
   }
 
   function openItem(item: AgendaItem) {
+    if (item.kind === "appointment") {
+      setSeed(detailCache.current.get(item.id) ?? null);
+    } else {
+      setSeed(null);
+    }
     setSelected(item);
   }
 
@@ -351,6 +378,7 @@ export function AgendaCalendar({
           byDay={byDay}
           onOpenDay={openDay}
           onOpenItem={openItem}
+          onPrefetchAppointment={prefetchAppointment}
         />
       )}
 
@@ -360,6 +388,7 @@ export function AgendaCalendar({
           today={today}
           byDay={byDay}
           onOpenItem={openItem}
+          onPrefetchAppointment={prefetchAppointment}
         />
       )}
 
@@ -369,76 +398,34 @@ export function AgendaCalendar({
           today={today}
           byDay={byDay}
           onOpenItem={openItem}
+          onPrefetchAppointment={prefetchAppointment}
           single
         />
       )}
 
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <AppointmentDetailSheet
+        appointmentId={
+          selected?.kind === "appointment" ? selected.id : null
+        }
+        open={selected?.kind === "appointment"}
+        onOpenChange={(o) => {
+          if (!o) setSelected(null);
+        }}
+        seed={selected?.kind === "appointment" ? seed : null}
+        onDetail={(d) => {
+          detailCache.current.set(d.id, d);
+          setSeed(d);
+        }}
+        onStatusChange={(id, status) => {
+          setStatusById((prev) => ({ ...prev, [id]: status }));
+        }}
+      />
+
+      <Sheet
+        open={selected?.kind === "task"}
+        onOpenChange={(o) => !o && setSelected(null)}
+      >
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          {selected?.kind === "appointment" && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{selected.title}</SheetTitle>
-                <SheetDescription>
-                  {TYPE_LABEL[selected.type] ?? selected.type} ·{" "}
-                  {new Date(selected.startsAt).toLocaleString("es-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-4 space-y-4 px-1">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">
-                    {TYPE_LABEL[selected.type] ?? selected.type}
-                  </Badge>
-                  <Badge variant="outline">{selected.status}</Badge>
-                  {selected.googleEventId && (
-                    <Badge variant="outline">Google Calendar</Badge>
-                  )}
-                </div>
-                {(selected.address || selected.city) && (
-                  <p className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
-                    {[selected.address, selected.city].filter(Boolean).join(", ")}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {selected.mapsUrl && (
-                    <Button asChild size="sm" variant="outline">
-                      <a
-                        href={selected.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Maps <ExternalLink className="size-3.5" />
-                      </a>
-                    </Button>
-                  )}
-                  {selected.status === "SCHEDULED" && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={pending}
-                      onClick={() =>
-                        startTransition(async () => {
-                          const res = await cancelAppointment({
-                            id: selected.id,
-                          });
-                          if (res.ok) {
-                            toast.success("Cita cancelada.");
-                            setSelected(null);
-                          } else toast.error(res.error ?? "Error");
-                        })
-                      }
-                    >
-                      Cancelar cita
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
           {selected?.kind === "task" && (
             <>
               <SheetHeader>
@@ -560,6 +547,7 @@ function MonthGrid({
   byDay,
   onOpenDay,
   onOpenItem,
+  onPrefetchAppointment,
 }: {
   gridStart: Date;
   month: number;
@@ -567,6 +555,7 @@ function MonthGrid({
   byDay: Map<string, AgendaItem[]>;
   onOpenDay: (d: Date) => void;
   onOpenItem: (item: AgendaItem) => void;
+  onPrefetchAppointment?: (id: string) => void;
 }) {
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
 
@@ -619,12 +608,20 @@ function MonthGrid({
                       e.stopPropagation();
                       onOpenItem(item);
                     }}
+                    onMouseEnter={() => {
+                      if (item.kind === "appointment") {
+                        onPrefetchAppointment?.(item.id);
+                      }
+                    }}
                     className={cn(
                       "block w-full truncate rounded border px-1 py-0.5 text-left text-[10px] leading-tight sm:text-xs",
                       item.kind === "task"
                         ? TYPE_CHIP.TASK
                         : TYPE_CHIP[item.type] ?? TYPE_CHIP.OTHER,
                       item.kind === "task" && item.done && "line-through opacity-60",
+                      item.kind === "appointment" &&
+                        item.status === "DONE" &&
+                        "opacity-55",
                     )}
                   >
                     {item.kind === "appointment" && (
@@ -661,12 +658,14 @@ function TimeGrid({
   today,
   byDay,
   onOpenItem,
+  onPrefetchAppointment,
   single,
 }: {
   days: Date[];
   today: Date;
   byDay: Map<string, AgendaItem[]>;
   onOpenItem: (item: AgendaItem) => void;
+  onPrefetchAppointment?: (id: string) => void;
   single?: boolean;
 }) {
   const hours = hoursArray();
@@ -790,9 +789,11 @@ function TimeGrid({
                       key={appt.id}
                       type="button"
                       onClick={() => onOpenItem(appt)}
+                      onMouseEnter={() => onPrefetchAppointment?.(appt.id)}
                       className={cn(
                         "absolute inset-x-1 overflow-hidden rounded border px-1.5 py-0.5 text-left text-xs shadow-sm",
                         TYPE_CHIP[appt.type] ?? TYPE_CHIP.OTHER,
+                        appt.status === "DONE" && "opacity-55",
                       )}
                       style={{ top, height }}
                     >

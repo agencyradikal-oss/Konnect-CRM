@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import { toast } from "sonner";
@@ -76,9 +76,11 @@ type CsvPreview = {
 export function ContactsManager({
   contacts,
   canImportCsv = false,
+  initialContactId,
 }: {
   contacts: ContactRow[];
   canImportCsv?: boolean;
+  initialContactId?: string;
 }) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<ContactRow | null>(null);
@@ -91,6 +93,15 @@ export function ContactsManager({
   const [mapName, setMapName] = useState("");
   const [mapEmail, setMapEmail] = useState("");
   const [mapPhone, setMapPhone] = useState("");
+
+  useEffect(() => {
+    if (!initialContactId) return;
+    const match = contacts.find((c) => c.id === initialContactId);
+    if (match) {
+      setSelected(match);
+      setOpen(true);
+    }
+  }, [initialContactId, contacts]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

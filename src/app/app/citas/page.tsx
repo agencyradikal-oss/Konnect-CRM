@@ -40,6 +40,18 @@ export default async function CitasPage({
         status: { not: "CANCELED" },
         startsAt: { gte: rangeStart, lt: rangeEnd },
       },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        address: true,
+        city: true,
+        mapsUrl: true,
+        googleEventId: true,
+      },
       orderBy: { startsAt: "asc" },
     }),
     prisma.task.findMany({

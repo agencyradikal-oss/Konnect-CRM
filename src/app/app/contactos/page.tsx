@@ -6,10 +6,10 @@ import { ContactsManager } from "@/components/crm/contacts-manager";
 export default async function ContactosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; contact?: string }>;
 }) {
   const { businessId, business } = await getCurrentBusiness();
-  await searchParams; // reserved for future server-side search
+  const params = await searchParams;
   const canImportCsv = getPlanLimits(business.plan).csvImport;
 
   const contacts = await prisma.contact.findMany({
@@ -27,6 +27,7 @@ export default async function ContactosPage({
   return (
     <ContactsManager
       canImportCsv={canImportCsv}
+      initialContactId={params.contact}
       contacts={contacts.map((c) => ({
         id: c.id,
         name: c.name,
